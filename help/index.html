@@ -1,0 +1,4869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Markdown 教程</title>
+    <!-- 引入FontAwesome图标库 -->
+    <link rel="stylesheet" href="../css/fontawesome/css/all.min.css">
+    <style>
+        /* 基础样式 - 与编辑器保持一致 */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            transition: background 0.3s ease;
+            line-height: 1.6;
+        }
+
+        body.night-mode {
+            background: #000000 !important;
+            color: #d4d4d4;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eaeaea;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.night-mode .navbar {
+            background: #2d2d2d;
+            border-bottom: 1px solid #444;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.night-mode .nav-title {
+            color: #eee;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 模式切换按钮 */
+        .mode-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            color: #333;
+        }
+
+        .mode-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        body.night-mode .mode-toggle {
+            background: rgba(45, 45, 45, 0.9);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 返回编辑器按钮 */
+        .back-btn {
+            padding: 8px 16px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #3a7bc8;
+        }
+
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            margin-top: 70px;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #eaeaea;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            padding: 20px 0;
+        }
+
+        body.night-mode .sidebar {
+            background: #2d2d2d;
+            border-right: 1px solid #444;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 15px;
+            border-bottom: 1px solid #eaeaea;
+            margin-bottom: 15px;
+        }
+
+        body.night-mode .sidebar-header {
+            border-bottom: 1px solid #444;
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 5px 0;
+        }
+
+        body.night-mode .sidebar-title {
+            color: #eee;
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: #666;
+            margin: 0;
+        }
+
+        body.night-mode .sidebar-subtitle {
+            color: #aaa;
+        }
+
+        .toc {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-item {
+            padding: 0;
+        }
+
+        .toc-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+            gap: 10px;
+        }
+
+        body.night-mode .toc-link {
+            color: #ddd;
+        }
+
+        .toc-link:hover {
+            background: rgba(0, 0, 0, 0.05);
+            border-left: 3px solid #4a90e2;
+        }
+
+        body.night-mode .toc-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .toc-link.active {
+            background: #e3f2fd;
+            border-left: 3px solid #4a90e2;
+            font-weight: 600;
+        }
+
+        body.night-mode .toc-link.active {
+            background: #1e3a5f;
+        }
+
+        .toc-link i {
+            font-size: 14px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* 主内容区 */
+        .content {
+            flex: 1;
+            padding: 30px;
+            margin-left: 250px;
+            max-width: 1000px;
+        }
+
+        .chapter {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .chapter.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chapter-header {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4a90e2;
+        }
+
+        .chapter-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        body.night-mode .chapter-title {
+            color: #eee;
+        }
+
+        .chapter-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin: 0;
+        }
+
+        body.night-mode .chapter-subtitle {
+            color: #aaa;
+        }
+
+        /* Markdown内容样式 */
+        .markdown-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        body.night-mode .markdown-content {
+            background: #2d2d2d;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .markdown-content h2 {
+            color: #333;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 10px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        body.night-mode .markdown-content h2 {
+            color: #eee;
+            border-bottom: 1px solid #444;
+        }
+
+        .markdown-content h3 {
+            color: #555;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        body.night-mode .markdown-content h3 {
+            color: #ddd;
+        }
+
+        .markdown-content p {
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        body.night-mode .markdown-content p {
+            color: #ccc;
+        }
+
+        .markdown-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #d63384;
+        }
+
+        body.night-mode .markdown-content code {
+            background: #3d3d3d;
+            color: #ff7bac;
+        }
+
+        .markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        body.night-mode .markdown-content pre {
+            background: #1e1e1e;
+            border: 1px solid #444;
+            color: #d4d4d4;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: inherit;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid #4a90e2;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 0 8px 8px 0;
+        }
+
+        body.night-mode .markdown-content blockquote {
+            background: #3d3d3d;
+            border-left-color: #4a90e2;
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        body.night-mode .markdown-content th,
+        body.night-mode .markdown-content td {
+            border-color: #555;
+        }
+
+        .markdown-content th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        body.night-mode .markdown-content th {
+            background: #3d3d3d;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            padding-left: 20px;
+            margin: 15px 0;
+        }
+
+        .markdown-content li {
+            margin-bottom: 8px;
+        }
+
+        /* 示例框 */
+        .example {
+            background: #f8f9fa;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        body.night-mode .example {
+            background: #3d3d3d;
+            border-color: #444;
+        }
+
+        .example-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.night-mode .example-title {
+            color: #eee;
+        }
+
+        .example-content {
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        body.night-mode .example-content {
+            background: #2d2d2d;
+        }
+
+        /* 提示框 */
+        .tip-box {
+            background: #e3f2fd;
+            border-left: 4px solid #4a90e2;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        body.night-mode .tip-box {
+            background: #1e3a5f;
+            border-left-color: #4a90e2;
+        }
+
+        .tip-title {
+            font-weight: 600;
+            color: #155724;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.night-mode .tip-title {
+            color: #a3d9a5;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                max-height: 300px;
+                margin-bottom: 20px;
+            }
+
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .nav-title span {
+                display: none;
+            }
+        }
+
+        /* 代码高亮 */
+        .hljs-keyword { color: #d73a49; }
+        .hljs-string { color: #032f62; }
+        .hljs-comment { color: #6a737d; }
+        .hljs-function { color: #6f42c1; }
+        .hljs-params { color: #005cc5; }
+
+        body.night-mode .hljs-keyword { color: #ff7b72; }
+        body.night-mode .hljs-string { color: #a5d6ff; }
+        body.night-mode .hljs-comment { color: #8b949e; }
+        body.night-mode .hljs-function { color: #d2a8ff; }
+        body.night-mode .hljs-params { color: #79c0ff; }
+
+        /* 练习区 */
+        .practice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        body.night-mode .practice {
+            background: #5d4037;
+            border-color: #ff9800;
+        }
+
+        .practice-title {
+            color: #856404;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.night-mode .practice-title {
+            color: #ffcc80;
+        }
+
+        /* 数学公式样式 */
+        .math-example {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        body.night-mode .math-example {
+            background: #3d3d3d;
+        }
+
+        .katex-display {
+            margin: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+    </style>
+</head>
+<body>
+<!-- 导航栏 -->
+<nav class="navbar">
+    <div class="nav-title">
+        <i class="fas fa-graduation-cap"></i>
+        <span>Markdown 教程</span>
+    </div>
+    <div class="nav-controls">
+        <button class="mode-toggle" id="modeToggle" title="切换夜间模式">
+            <i class="fas fa-moon"></i>
+        </button>
+        <a href="https://yhsun.cn/md" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>返回编辑器</span>
+        </a>
+    </div>
+</nav>
+
+<!-- 主容器 -->
+<div class="main-container">
+    <!-- 侧边栏目录 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h3 class="sidebar-title">目录</h3>
+            <p class="sidebar-subtitle">Markdown 学习指南</p>
+        </div>
+        <ul class="toc" id="toc">
+            <li class="toc-item">
+                <a href="#chapter-0" class="toc-link active" data-chapter="0">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Markdown 编辑器</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-1" class="toc-link" data-chapter="1">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Markdown 第一个文件</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-2" class="toc-link" data-chapter="2">
+                    <i class="fas fa-heading"></i>
+                    <span>Markdown 标题</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-3" class="toc-link" data-chapter="3">
+                    <i class="fas fa-font"></i>
+                    <span>Markdown 文本格式</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-4" class="toc-link" data-chapter="4">
+                    <i class="fas fa-list"></i>
+                    <span>Markdown 列表</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-5" class="toc-link" data-chapter="5">
+                    <i class="fas fa-quote-right"></i>
+                    <span>Markdown 引用块</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-6" class="toc-link" data-chapter="6">
+                    <i class="fas fa-code"></i>
+                    <span>Markdown 代码</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-7" class="toc-link" data-chapter="7">
+                    <i class="fas fa-link"></i>
+                    <span>Markdown 链接</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-8" class="toc-link" data-chapter="8">
+                    <i class="fas fa-image"></i>
+                    <span>Markdown 图片</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-9" class="toc-link" data-chapter="9">
+                    <i class="fas fa-table"></i>
+                    <span>Markdown 表格</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-10" class="toc-link" data-chapter="10">
+                    <i class="fas fa-magic"></i>
+                    <span>Markdown 高级技巧</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-11" class="toc-link" data-chapter="11">
+                    <i class="fas fa-minus"></i>
+                    <span>Markdown 分割线</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-12" class="toc-link" data-chapter="12">
+                    <i class="fas fa-superscript"></i>
+                    <span>Markdown 数学公式</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-13" class="toc-link" data-chapter="13">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Markdown 图表绘制</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-14" class="toc-link" data-chapter="14">
+                    <i class="fas fa-rocket"></i>
+                    <span>Markdown 实战</span>
+                </a>
+            </li>
+            <li class="toc-item">
+                <a href="#chapter-15" class="toc-link" data-chapter="15">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Markdown 测验</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="content">
+        <!-- 第0章：Markdown 编辑器 -->
+        <section id="chapter-0" class="chapter active">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-play-circle"></i>
+                    Markdown 编辑器
+                </h2>
+                <p class="chapter-subtitle">了解您的创作工具</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>什么是 Markdown 编辑器？</h3>
+                <p>Markdown 编辑器是一种专门设计用于编写和预览 Markdown 文档的工具。它通常提供实时预览功能，让您可以看到格式化后的效果，而不仅仅是原始文本。</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-desktop"></i>
+                        主要功能
+                    </h4>
+                    <ul>
+                        <li><strong>实时预览</strong>: 边写边看效果</li>
+                        <li><strong>语法高亮</strong>: 不同元素使用不同颜色显示</li>
+                        <li><strong>工具栏</strong>: 提供常用功能的快捷按钮</li>
+                        <li><strong>多文件管理</strong>: 可以同时编辑多个文档</li>
+                        <li><strong>导出功能</strong>: 支持导出为多种格式（PDF、HTML、Word等）</li>
+                    </ul>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-lightbulb"></i>
+                        小贴士
+                    </h4>
+                    <p>使用键盘快捷键可以大大提高编辑效率：</p>
+                    <ul>
+                        <li><code>Ctrl/Cmd + B</code>：加粗</li>
+                        <li><code>Ctrl/Cmd + I</code>：斜体</li>
+                        <li><code>Ctrl/Cmd + K</code>：插入链接</li>
+                        <li><code>Ctrl/Cmd + Shift + I</code>：插入图片</li>
+                    </ul>
+                </div>
+
+                <h3>为什么选择 Markdown？</h3>
+                <p>Markdown 是一种轻量级标记语言，具有以下优点：</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>特点</th>
+                        <th>说明</th>
+                        <th>优势</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>简单易学</td>
+                        <td>语法直观，几分钟就能学会基础</td>
+                        <td>快速上手</td>
+                    </tr>
+                    <tr>
+                        <td>纯文本格式</td>
+                        <td>使用纯文本，不依赖特定软件</td>
+                        <td>永久可读</td>
+                    </tr>
+                    <tr>
+                        <td>平台无关</td>
+                        <td>在任何文本编辑器上都能编辑</td>
+                        <td>高度兼容</td>
+                    </tr>
+                    <tr>
+                        <td>专注于内容</td>
+                        <td>无需关注复杂的排版</td>
+                        <td>提升效率</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-pencil-alt"></i>
+                        开始练习
+                    </h4>
+                    <p>在您的 Markdown 编辑器中创建一个新文件，并尝试以下操作：</p>
+                    <ol>
+                        <li>输入一个标题（使用 # 符号）</li>
+                        <li>写一段文字</li>
+                        <li>尝试加粗和斜体效果</li>
+                        <li>保存文件</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第1章：Markdown 第一个文件 -->
+        <section id="chapter-1" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-file-alt"></i>
+                    Markdown 第一个文件
+                </h2>
+                <p class="chapter-subtitle">创建您的第一个 Markdown 文档</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>创建新文件</h3>
+                <p>在 Markdown 编辑器中创建新文件的方法通常有以下几种：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-plus-circle"></i>
+                        创建方法
+                    </h4>
+                    <ul>
+                        <li><strong>菜单栏</strong>: 点击"文件"→"新建"</li>
+                        <li><strong>快捷键</strong>: 使用 <code>Ctrl/Cmd + N</code></li>
+                        <li><strong>工具栏</strong>: 点击"新建文件"按钮</li>
+                        <li><strong>文件列表</strong>: 点击"+"按钮</li>
+                    </ul>
+                </div>
+
+                <h3>文件命名规范</h3>
+                <p>建议使用以下命名规则：</p>
+                <pre><code># 好的文件名示例
+README.md
+项目文档.md
+学习笔记-2024.md
+report_v1.2.md
+
+# 避免使用的文件名
+我的文档.txt        # 应该使用 .md 扩展名
+file without spaces # 最好使用连字符或下划线
+最终版(1).md        # 避免特殊字符</code></pre>
+
+                <h3>基本文件结构</h3>
+                <p>一个典型的 Markdown 文件包含以下部分：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-code"></i>
+                        示例代码
+                    </h4>
+                    <div class="example-content">
+                            <pre><code># 文档标题
+
+## 章节标题
+
+这里是段落文本...
+
+### 子章节
+
+- 列表项1
+- 列表项2
+
+> 引用文本
+
+**加粗文字** *斜体文字*
+
+[链接文字](https://example.com)</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-save"></i>
+                        保存技巧
+                    </h4>
+                    <p>养成以下好习惯：</p>
+                    <ul>
+                        <li>及时保存：使用 <code>Ctrl/Cmd + S</code></li>
+                        <li>版本管理：定期保存不同版本</li>
+                        <li>自动保存：开启编辑器的自动保存功能</li>
+                        <li>云端备份：使用同步功能防止数据丢失</li>
+                    </ul>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-tasks"></i>
+                        练习任务
+                    </h4>
+                    <p>完成以下任务来创建您的第一个 Markdown 文件：</p>
+                    <ol>
+                        <li>创建一个名为"我的第一个Markdown.md"的新文件</li>
+                        <li>添加一个一级标题：我的学习笔记</li>
+                        <li>添加今天的日期作为二级标题</li>
+                        <li>写一段简短的自我介绍</li>
+                        <li>保存文件</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第2章：Markdown 标题 -->
+        <section id="chapter-2" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-heading"></i>
+                    Markdown 标题
+                </h2>
+                <p class="chapter-subtitle">使用标题组织文档结构</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>标题语法</h3>
+                <p>Markdown 使用 <code>#</code> 符号表示标题，<code>#</code> 的数量表示标题级别：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-hashtag"></i>
+                        标题示例
+                    </h4>
+                    <div class="example-content">
+                            <pre><code># 一级标题
+## 二级标题
+### 三级标题
+#### 四级标题
+##### 五级标题
+###### 六级标题</code></pre>
+                    </div>
+                </div>
+
+                <h3>标题的显示效果</h3>
+                <p>不同级别的标题会显示为不同大小和样式：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-eye"></i>
+                        显示效果
+                    </h4>
+                    <div class="example-content">
+                        <h1 style="font-size: 2em; margin: 0.67em 0;">一级标题</h1>
+                        <h2 style="font-size: 1.5em; margin: 0.75em 0;">二级标题</h2>
+                        <h3 style="font-size: 1.17em; margin: 0.83em 0;">三级标题</h3>
+                        <h4 style="font-size: 1em; margin: 1.12em 0;">四级标题</h4>
+                        <h5 style="font-size: 0.83em; margin: 1.5em 0;">五级标题</h5>
+                        <h6 style="font-size: 0.75em; margin: 1.67em 0;">六级标题</h6>
+                    </div>
+                </div>
+
+                <h3>最佳实践</h3>
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-check-circle"></i>
+                        标题使用建议
+                    </h4>
+                    <ul>
+                        <li>使用一个一级标题作为文档标题</li>
+                        <li>保持标题层次结构合理，不要跳过级别</li>
+                        <li>标题前加空格：<code># 标题</code> 而不是 <code>#标题</code></li>
+                        <li>标题后加空格：<code># 标题</code> 而不是 <code># 标题</code></li>
+                        <li>在标题下加空行以增强可读性</li>
+                    </ul>
+                </div>
+
+                <h3>标题与文档大纲</h3>
+                <p>良好的标题结构可以帮助生成文档大纲：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-sitemap"></i>
+                        文档结构示例
+                    </h4>
+                    <div class="example-content">
+                            <pre><code># 项目报告
+
+## 项目概述
+### 项目背景
+### 项目目标
+
+## 技术方案
+### 系统架构
+### 技术选型
+
+## 实施计划
+### 时间安排
+### 人员分工
+
+## 总结</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-edit"></i>
+                        练习：创建文档大纲
+                    </h4>
+                    <p>为"学习计划"创建一个完整的标题结构：</p>
+                    <ol>
+                        <li>一级标题：2024年学习计划</li>
+                        <li>二级标题：第一季度学习内容</li>
+                        <li>三级标题：Markdown学习</li>
+                        <li>三级标题：HTML基础</li>
+                        <li>二级标题：学习目标</li>
+                        <li>三级标题：短期目标</li>
+                        <li>三级标题：长期目标</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第3章：Markdown 文本格式 -->
+        <section id="chapter-3" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-font"></i>
+                    Markdown 文本格式
+                </h2>
+                <p class="chapter-subtitle">加粗、斜体、删除线等文本样式</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基本文本格式</h3>
+                <p>Markdown 提供多种文本格式选项，让你的文档更具表现力。</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-bold"></i>
+                        格式示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>**加粗文本** 或 __加粗文本__
+*斜体文本* 或 _斜体文本_
+***粗斜体文本*** 或 ___粗斜体文本__
+~~删除线文本~~
+`行内代码`
+==高亮文本==（部分编辑器支持）</code></pre>
+                    </div>
+                </div>
+
+                <h3>显示效果对比</h3>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>语法</th>
+                        <th>效果</th>
+                        <th>说明</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>**加粗**</code></td>
+                        <td><strong>加粗</strong></td>
+                        <td>强调重要内容</td>
+                    </tr>
+                    <tr>
+                        <td><code>*斜体*</code></td>
+                        <td><em>斜体</em></td>
+                        <td>表示引用、术语等</td>
+                    </tr>
+                    <tr>
+                        <td><code>***粗斜体***</code></td>
+                        <td><strong><em>粗斜体</em></strong></td>
+                        <td>强烈强调</td>
+                    </tr>
+                    <tr>
+                        <td><code>~~删除线~~</code></td>
+                        <td><s>删除线</s></td>
+                        <td>表示已删除或无效内容</td>
+                    </tr>
+                    <tr>
+                        <td><code>`代码`</code></td>
+                        <td><code>代码</code></td>
+                        <td>行内代码或术语</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-lightbulb"></i>
+                        格式使用技巧
+                    </h4>
+                    <ul>
+                        <li>加粗用于强调重要概念或关键词</li>
+                        <li>斜体用于书名、文章名、外来语等</li>
+                        <li>删除线可用于表示更改或废弃内容</li>
+                        <li>行内代码用于技术术语、命令、文件名等</li>
+                        <li>避免过度使用格式，保持文档整洁</li>
+                    </ul>
+                </div>
+
+                <h3>组合使用示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-layer-group"></i>
+                        综合示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 项目报告
+
+这个项目使用 **React** 框架开发，是一个 *响应式* Web应用。
+
+## 主要特性
+
+1. ***完全开源*** - 代码可以在GitHub上找到
+2. 支持 `JavaScript` 和 `TypeScript`
+3. ~~不支持IE浏览器~~ 现在已支持IE11
+
+注意：`npm install` 命令用于安装依赖。</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-edit"></i>
+                        格式练习
+                    </h4>
+                    <p>使用不同的文本格式重写以下段落：</p>
+                    <blockquote>
+                        这是一个重要的通知。请使用markdown语法创建文档。记得保存为md文件。代码部分要特别标注。
+                    </blockquote>
+                    <p>要求：</p>
+                    <ol>
+                        <li>将"重要的"加粗显示</li>
+                        <li>将"markdown语法"设为斜体</li>
+                        <li>将"md文件"设为行内代码</li>
+                        <li>将"特别标注"设为粗斜体</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第4章：Markdown 列表 -->
+        <section id="chapter-4" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-list"></i>
+                    Markdown 列表
+                </h2>
+                <p class="chapter-subtitle">有序列表、无序列表和任务列表</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>无序列表</h3>
+                <p>使用 <code>-</code>, <code>*</code> 或 <code>+</code> 创建无序列表：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-dot-circle"></i>
+                        无序列表示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>- 项目一
+- 项目二
+  - 子项目一
+  - 子项目二
+- 项目三
+
+* 使用星号也可以
+* 另一个项目
+
++ 加号同样有效</code></pre>
+                    </div>
+                </div>
+
+                <h3>有序列表</h3>
+                <p>使用数字加句点创建有序列表：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-list-ol"></i>
+                        有序列表示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>1. 第一步
+2. 第二步
+3. 第三步
+   1. 子步骤一
+   2. 子步骤二
+4. 第四步
+
+# 自动编号功能
+1. 第一项
+1. 第二项
+1. 第三项
+# 渲染时自动显示为1,2,3</code></pre>
+                    </div>
+                </div>
+
+                <h3>任务列表</h3>
+                <p>使用复选框创建任务列表：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-tasks"></i>
+                        任务列表示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>- [ ] 未完成任务
+- [x] 已完成任务
+- [ ] 另一个任务
+  - [x] 子任务已完成
+  - [ ] 子任务未完成</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-check-circle"></i>
+                        列表使用建议
+                    </h4>
+                    <ul>
+                        <li>无序列表用于无顺序要求的项目</li>
+                        <li>有序列表用于步骤、排名等有顺序的内容</li>
+                        <li>任务列表适合待办事项、检查清单</li>
+                        <li>使用缩进（2个空格）创建嵌套列表</li>
+                        <li>列表前后各留一个空行增强可读性</li>
+                    </ul>
+                </div>
+
+                <h3>组合列表示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-project-diagram"></i>
+                        综合应用
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 项目开发流程
+
+## 第一阶段：准备
+- [x] 项目立项
+- [x] 需求分析
+- [ ] 技术选型
+
+## 第二阶段：开发
+1. 搭建开发环境
+   1. 安装Node.js
+   2. 配置Git
+2. 编写代码
+   - 前端开发
+   - 后端开发
+3. 测试
+   - [ ] 单元测试
+   - [ ] 集成测试
+
+## 第三阶段：部署
+- 服务器配置
+- 数据库部署
+- 上线发布</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-shopping-cart"></i>
+                        练习：创建购物清单
+                    </h4>
+                    <p>创建一个包含以下内容的购物清单：</p>
+                    <ol>
+                        <li>主标题：本周购物清单</li>
+                        <li>使用无序列表列出3个类别（食品、日用品、电子产品）</li>
+                        <li>每个类别下使用任务列表列出具体项目</li>
+                        <li>部分项目标记为已完成</li>
+                        <li>添加购买优先级的子列表</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第5章：Markdown 引用块 -->
+        <section id="chapter-5" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-quote-right"></i>
+                    Markdown 引用块
+                </h2>
+                <p class="chapter-subtitle">引用他人内容或突出重要信息</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基本引用语法</h3>
+                <p>使用 <code>></code> 符号创建引用块：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-quote-left"></i>
+                        基本引用
+                    </h4>
+                    <div class="example-content">
+                <pre><code>> 这是一个引用块。
+> 可以跨越多行。
+
+> 这是另一个引用块。</code></pre>
+                    </div>
+                </div>
+
+                <h3>多级引用</h3>
+                <p>使用多个 <code>></code> 符号创建嵌套引用：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-indent"></i>
+                        嵌套引用示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>> 一级引用
+>> 二级引用
+>>> 三级引用
+>> 返回二级引用
+> 返回一级引用</code></pre>
+                    </div>
+                </div>
+
+                <h3>引用中的其他元素</h3>
+                <p>引用块中可以包含其他Markdown元素：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-code"></i>
+                        复杂引用示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>> ## 引用中的标题
+>
+> 这是一个包含多种格式的引用块：
+>
+> - **加粗文字**
+> - *斜体文字*
+> - `代码片段`
+>
+> > 嵌套的引用
+>
+> 引用结束。</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-comment"></i>
+                        引用使用场景
+                    </h4>
+                    <ul>
+                        <li>引用他人文章、书籍内容</li>
+                        <li>突出显示重要信息或警告</li>
+                        <li>展示代码或配置的说明</li>
+                        <li>创建问答形式的文档</li>
+                        <li>表示不同角色的对话</li>
+                    </ul>
+                </div>
+
+                <h3>实际应用示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-book-open"></i>
+                        技术文档示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># API 使用说明
+
+## 认证
+
+> **注意**：所有API请求都需要认证令牌。
+
+请求示例：
+
+```bash
+curl -X GET \
+  https://api.example.com/data \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+                    错误处理
+常见的错误响应：
+
+HTTP 400: 请求参数错误
+
+json
+{
+  "error": "invalid_parameters",
+  "message": "缺少必要参数"
+}
+HTTP 401: 认证失败
+
+请检查：
+
+令牌是否有效
+
+令牌是否已过期
+
+权限是否正确</code></pre>
+                    </div>
+                </div>
+
+                text
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-comments"></i>
+                        练习：创建FAQ文档
+                    </h4>
+                    <p>创建一个常见问题解答文档，要求：</p>
+                    <ol>
+                        <li>使用引用来表示问题和答案</li>
+                        <li>至少包含3个FAQ条目</li>
+                        <li>在答案中使用列表和代码块</li>
+                        <li>使用嵌套引用表示补充说明</li>
+                        <li>添加一个重要的提示引用块</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第6章：Markdown 代码 -->
+        <section id="chapter-6" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-code"></i>
+                    Markdown 代码
+                </h2>
+                <p class="chapter-subtitle">行内代码和代码块的高亮显示</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>行内代码</h3>
+                <p>使用反引号 <code>`</code> 包裹行内代码：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-code"></i>
+                        行内代码示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>使用 `console.log()` 打印信息。
+HTML标签如 `` 需要正确闭合。
+配置环境变量 `PATH=$PATH:/usr/local/bin`。</code></pre>
+                    </div>
+                </div>
+
+                <h3>代码块</h3>
+                <p>使用三个反引号创建代码块：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-file-code"></i>
+                        基本代码块
+                    </h4>
+                    <div class="example-content">
+                <pre><code>```
+function hello() {
+    console.log("Hello, World!");
+    return true;
+}
+```</code></pre>
+                    </div>
+                </div>
+
+                <h3>语法高亮</h3>
+                <p>在反引号后指定语言名称实现语法高亮：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-palette"></i>
+                        语法高亮示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>```javascript
+// JavaScript示例
+function calculateSum(a, b) {
+    return a + b;
+}
+
+const result = calculateSum(5, 3);
+console.log(`结果：${result}`);
+                    # Python示例
+def calculate_sum(a, b):
+    """计算两个数的和"""
+    return a + b
+
+if __name__ == "__main__":
+    result = calculate_sum(5, 3)
+    print(f"结果：{result}")
+                    基本用法
+javascript
+// 导入模块
+const auth = require('auth-module');
+
+// 初始化配置
+const config = {
+    secretKey: 'your-secret-key',
+    expiresIn: '24h'
+};
+
+// 创建令牌
+const token = auth.createToken({ userId: 123 }, config);
+console.log(`Token: ${token}`);
+
+// 验证令牌
+try {
+    const decoded = auth.verifyToken(token, config);
+    console.log('验证成功:', decoded);
+} catch (error) {
+    console.error('验证失败:', error.message);
+}
+API 参考
+createToken(payload, config)
+payload: 要编码的数据对象
+
+config: 配置对象
+
+返回：JWT令牌字符串
+
+verifyToken(token, config)
+token: 要验证的令牌
+
+config: 配置对象
+
+返回：解码后的数据对象</code></pre>
+                    </div>
+                </div>
+
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-terminal"></i>
+                        练习：创建代码片段库
+                    </h4>
+                    <p>创建一个包含以下代码片段的文档：</p>
+                    <ol>
+                        <li>一个JavaScript函数，计算数组的平均值</li>
+                        <li>一个Python类，表示学生信息</li>
+                        <li>一个SQL查询，获取用户订单数据</li>
+                        <li>一个Bash脚本，备份指定目录</li>
+                        <li>一个CSS样式，创建响应式卡片</li>
+                    </ol>
+                    <p>要求：每个代码块都要有正确的语言标记和适当的注释。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第7章：Markdown 链接 -->
+        <section id="chapter-7" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-link"></i>
+                    Markdown 链接
+                </h2>
+                <p class="chapter-subtitle">创建超链接和引用链接</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基本链接</h3>
+                <p>使用方括号和圆括号创建链接：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-external-link-alt"></i>
+                        基本链接语法
+                    </h4>
+                    <div class="example-content">
+                <pre><code>[链接文字](URL)
+
+示例：
+[访问Google](https://www.google.com)
+[查看GitHub](https://github.com)
+[发送邮件](mailto:example@example.com)</code></pre>
+                    </div>
+                </div>
+
+                <h3>链接标题</h3>
+                <p>为链接添加悬停提示：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-info-circle"></i>
+                        带标题的链接
+                    </h4>
+                    <div class="example-content">
+                <pre><code>[链接文字](URL "标题文本")
+
+示例：
+[Markdown指南](https://www.markdownguide.org "全面的Markdown教程")
+[下载文件](document.pdf "点击下载PDF文件")</code></pre>
+                    </div>
+                </div>
+
+                <h3>引用链接</h3>
+                <p>在文档末尾定义链接，使正文更整洁：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-bookmark"></i>
+                        引用链接示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>## 相关资源
+
+学习更多关于[Markdown][md-guide]的知识，
+查看[示例项目][example-project]。
+
+[md-guide]: https://www.markdownguide.org "Markdown官方指南"
+[example-project]: https://github.com/example/project
+[other-link]: https://example.com</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-link"></i>
+                        链接最佳实践
+                    </h4>
+                    <ul>
+                        <li>使用描述性的链接文字，避免"点击这里"</li>
+                        <li>为重要链接添加标题提示</li>
+                        <li>外部链接使用引用方式组织</li>
+                        <li>检查链接是否有效</li>
+                        <li>考虑使用相对路径链接本地文件</li>
+                    </ul>
+                </div>
+
+                <h3>特殊类型链接</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-star"></i>
+                        特殊链接类型
+                    </h4>
+                    <div class="example-content">
+                <pre><code>## 各种链接示例
+
+### 锚点链接
+[回到顶部](#top)
+[查看第一章](#chapter-1)
+
+
+
+### 图片链接
+[![替代文字](image.jpg)](https://example.com)
+
+### 页内链接
+[跳转到另一个标题](#使用方法)</code></pre>
+                    </div>
+                </div>
+
+                <h3>实际应用</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-sitemap"></i>
+                        项目文档示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 项目文档
+
+## 快速开始
+
+1. [下载安装包][download]
+2. [查看安装指南][install]
+3. [阅读用户手册][manual]
+
+## 开发资源
+
+- [API文档][api-docs]
+- [GitHub仓库][github]
+- [问题反馈][issues]
+
+## 相关链接
+
+[官方博客][blog] | [社区论坛][forum] | [技术支持][support]
+
+                    <!-- 链接定义 -->
+[download]: https://example.com/download "最新版本下载"
+[install]: INSTALLATION.md "安装说明"
+[manual]: docs/manual.pdf "用户手册"
+[api-docs]: https://api.example.com/docs
+[github]: https://github.com/example/project
+[issues]: https://github.com/example/project/issues
+[blog]: https://blog.example.com
+[forum]: https://forum.example.com
+[support]: mailto:support@example.com</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-network-wired"></i>
+                        练习：创建资源链接页
+                    </h4>
+                    <p>创建一个学习资源汇总页面，要求：</p>
+                    <ol>
+                        <li>至少包含5个分类（如教程、工具、社区等）</li>
+                        <li>每个分类下列出3-5个相关链接</li>
+                        <li>使用引用链接方式组织所有链接</li>
+                        <li>为每个链接添加描述性标题</li>
+                        <li>包含邮件链接和文档相对链接</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第8章：Markdown 图片 -->
+        <section id="chapter-8" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-image"></i>
+                    Markdown 图片
+                </h2>
+                <p class="chapter-subtitle">插入和优化图像显示</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基本图片语法</h3>
+                <p>使用 <code>![替代文字](图片URL)</code> 插入图片：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-image"></i>
+                        基本图片插入
+                    </h4>
+                    <div class="example-content">
+                <pre><code>![公司Logo](https://example.com/logo.png)
+![风景图片](images/scenery.jpg "美丽的风景")
+![GitHub Octocat](https://github.githubassets.com/images/modules/logos_page/Octocat.png)</code></pre>
+                    </div>
+                </div>
+
+                <h3>图片尺寸和居中对齐</h3>
+                <p>一些Markdown扩展支持设置图片尺寸：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-expand-alt"></i>
+                        图片尺寸控制
+                    </h4>
+                    <div class="example-content">
+                <pre><code>## HTML方式设置尺寸
+<img src="image.jpg" alt="描述" width="300" height="200">
+
+## 一些编辑器的扩展语法
+![描述](image.jpg =300x200)
+![描述](image.jpg =300x)
+![描述](image.jpg =x200)
+
+## 居中对齐
+<p align="center">
+  <img src="image.jpg" alt="居中图片" width="400">
+</p></code></pre>
+                    </div>
+                </div>
+
+                <h3>图片链接</h3>
+                <p>将图片设置为可点击的链接：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-mouse-pointer"></i>
+                        图片链接示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>[![点击查看大图](thumbnail.jpg)](large-image.jpg)
+
+[![GitHub主页](github-mark.png)](https://github.com)
+[![发送邮件](email-icon.png)](mailto:contact@example.com)</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-images"></i>
+                        图片使用建议
+                    </h4>
+                    <ul>
+                        <li>始终提供有意义的替代文字（alt text）</li>
+                        <li>使用相对路径链接本地图片</li>
+                        <li>压缩图片以减小文件大小</li>
+                        <li>为重要图片添加标题或说明</li>
+                        <li>考虑使用CDN加速图片加载</li>
+                    </ul>
+                </div>
+
+                <h3>图集示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-photo-video"></i>
+                        产品图集示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 产品展示
+
+## 产品外观
+
+<p align="center">
+  <img src="images/product-front.jpg" alt="产品正面图" width="400">
+  <br>
+  <em>产品正面设计</em>
+</p>
+
+<p align="center">
+  <img src="images/product-side.jpg" alt="产品侧面图" width="300">
+  <img src="images/product-back.jpg" alt="产品背面图" width="300">
+  <br>
+  <em>产品多角度视图</em>
+</p>
+
+## 细节展示
+
+![接口细节](images/details-ports.jpg "丰富的接口设计")
+![屏幕显示](images/details-screen.jpg "高清显示屏效果")
+
+## 图库链接
+
+点击以下缩略图查看高清大图：
+
+[![图1](thumbnails/img1-thumb.jpg)](gallery/img1-full.jpg)
+[![图2](thumbnails/img2-thumb.jpg)](gallery/img2-full.jpg)
+[![图3](thumbnails/img3-thumb.jpg)](gallery/img3-full.jpg)</code></pre>
+                    </div>
+                </div>
+
+                <h3>图片引用</h3>
+                <p>使用引用方式组织图片链接：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-th-list"></i>
+                        引用图片示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 团队成员
+
+![张三][zhangsan] ![李四][lisi] ![王五][wangwu]
+
+张三是我们的技术总监，负责...
+李四是产品经理，专注于...
+王五是前端工程师，擅长...
+
+[zhangsan]: images/team/zhangsan.jpg "技术总监 - 张三"
+[lisi]: images/team/lisi.jpg "产品经理 - 李四"
+[wangwu]: images/team/wangwu.jpg "前端工程师 - 王五"</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-camera"></i>
+                        练习：创建产品展示页
+                    </h4>
+                    <p>为一件商品创建展示页面，要求：</p>
+                    <ol>
+                        <li>包含商品主图（居中显示）</li>
+                        <li>至少3张细节展示图</li>
+                        <li>图片带有有意义的替代文字</li>
+                        <li>创建一个缩略图画廊</li>
+                        <li>部分图片设置为可点击链接</li>
+                        <li>使用引用方式组织图片URL</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第9章：Markdown 表格 -->
+        <section id="chapter-9" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-table"></i>
+                    Markdown 表格
+                </h2>
+                <p class="chapter-subtitle">创建和格式化数据表格</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基本表格语法</h3>
+                <p>使用竖线 <code>|</code> 和连字符 <code>-</code> 创建表格：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-table"></i>
+                        基本表格
+                    </h4>
+                    <div class="example-content">
+                <pre><code>| 标题1 | 标题2 | 标题3 |
+|-------|-------|-------|
+| 单元格1 | 单元格2 | 单元格3 |
+| 单元格4 | 单元格5 | 单元格6 |
+| 单元格7 | 单元格8 | 单元格9 |</code></pre>
+                    </div>
+                </div>
+
+                <h3>表格对齐方式</h3>
+                <p>使用冒号指定列的对齐方式：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-align-left"></i>
+                        对齐方式示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>| 左对齐 | 居中对齐 | 右对齐 |
+|:-------|:--------:|-------:|
+| 文本1  |   文本2  |  文本3 |
+| 数据A  |   数据B  |  数据C |
+| 项目一 |   项目二 |  项目三 |
+
+# 对齐说明
+:---      # 左对齐
+:---:     # 居中对齐
+---:      # 右对齐</code></pre>
+                    </div>
+                </div>
+
+                <h3>复杂表格示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-th-large"></i>
+                        复杂表格
+                    </h4>
+                    <div class="example-content">
+                <pre><code>| 功能 | 描述 | 状态 | 优先级 |
+|------|------|------|:------:|
+| 用户注册 | 新用户注册功能 | ✅ 已完成 | 高 |
+| 用户登录 | 用户登录和认证 | 🔄 进行中 | 高 |
+| 密码重置 | 找回和重置密码 | ⏳ 计划中 | 中 |
+| 个人资料 | 编辑用户信息 | 📝 待开始 | 低 |
+
+| 季度 | 产品A | 产品B | 产品C | 总计 |
+|:----:|------:|------:|------:|-----:|
+| Q1   | $1,200 | $800  | $1,500 | $3,500 |
+| Q2   | $1,500 | $950  | $1,800 | $4,250 |
+| Q3   | $1,800 | $1,100| $2,000 | $4,900 |
+| Q4   | $2,000 | $1,300| $2,200 | $5,500 |</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-table"></i>
+                        表格设计建议
+                    </h4>
+                    <ul>
+                        <li>保持表格简洁，避免过多列</li>
+                        <li>为表格添加描述性标题</li>
+                        <li>使用对齐方式增强可读性</li>
+                        <li>数字通常右对齐，文本左对齐</li>
+                        <li>复杂数据考虑使用多个简单表格</li>
+                    </ul>
+                </div>
+
+                <h3>表格中的其他元素</h3>
+                <p>表格中可以包含链接、代码、粗体等格式：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-th"></i>
+                        格式化的表格
+                    </h4>
+                    <div class="example-content">
+                <pre><code>| 项目 | 技术栈 | 状态 | 链接 |
+|------|--------|------|------|
+| **个人博客** | `React` + `Node.js` | 🚀 已上线 | [访问网站](https://blog.example.com) |
+| 电商平台 | `Vue.js` + `Python` | 🔧 开发中 | [GitHub](https://github.com/example/ecommerce) |
+| 移动应用 | `React Native` | 📱 测试中 | [下载APK](app.apk) |
+| 数据分析工具 | `Python` + `Pandas` | ✅ 已完成 | [查看文档](docs/analysis.md) |
+
+| 命令 | 描述 | 示例 |
+|------|------|------|
+| `git clone` | 克隆仓库 | `git clone https://github.com/user/repo.git` |
+| `git status` | 查看状态 | `git status` |
+| `git add` | 添加文件 | `git add .` |
+| `git commit` | 提交更改 | `git commit -m "提交说明"` |</code></pre>
+                    </div>
+                </div>
+
+                <h3>实际应用示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        课程表示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 2024年春季课程表
+
+| 时间 | 星期一 | 星期二 | 星期三 | 星期四 | 星期五 |
+|:----:|--------|--------|--------|--------|--------|
+| 08:00-09:30 | 高等数学 | 大学英语 | C语言 | 体育 | 离散数学 |
+| 10:00-11:30 | 数据结构 | 物理实验 | 数据结构 | 大学英语 | 算法设计 |
+| 13:30-15:00 | 体育 | 数字电路 | 高等数学 | C语言实验 | 自由学习 |
+| 15:30-17:00 | 班会 | 社团活动 | 自由学习 | 项目实践 | 自由学习 |
+
+## 教师信息
+
+| 课程 | 教师 | 办公室 | 邮箱 | 答疑时间 |
+|------|------|--------|------|----------|
+| 高等数学 | 张教授 | 理科楼301 | math@example.com | 周三 14:00-16:00 |
+| 数据结构 | 李教授 | 计算机楼202 | ds@example.com | 周一 10:00-12:00 |
+| 大学英语 | 王老师 | 外语楼105 | english@example.com | 周二 13:00-15:00 |
+| C语言 | 赵工程师 | 实验楼408 | c@example.com | 周四 15:00-17:00 |</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        练习：创建产品对比表
+                    </h4>
+                    <p>创建一个产品对比表格，要求：</p>
+                    <ol>
+                        <li>对比至少3款产品</li>
+                        <li>包含以下列：产品名称、价格、功能、评分、购买链接</li>
+                        <li>使用不同的对齐方式</li>
+                        <li>在表格中使用格式（加粗、代码、链接）</li>
+                        <li>添加状态指示符号（✅、⚠️、❌等）</li>
+                        <li>在表格后添加总结说明</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第10章：Markdown 高级技巧 -->
+        <section id="chapter-10" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-magic"></i>
+                    Markdown 高级技巧
+                </h2>
+                <p class="chapter-subtitle">扩展语法和实用技巧</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>HTML混合使用</h3>
+                <p>Markdown支持直接嵌入HTML代码：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fab fa-html5"></i>
+                        HTML嵌入示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>## 使用HTML增强功能
+
+### 按钮和样式
+&lt;button style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px;"&gt;
+    点击这里
+&lt;/button&gt;
+
+### 详细信息标签
+&lt;details&gt;
+&lt;summary&gt;点击查看详细内容&lt;/summary&gt;
+
+这里是隐藏的详细内容。
+
+- 项目一
+- 项目二
+- 项目三
+
+&lt;/details&gt;
+
+### 换行和空格
+第一行&lt;br&gt;
+第二行
+
+使用&amp;nbsp;不换行空格</code></pre>
+                    </div>
+                </div>
+
+                <h3>脚注和引用</h3>
+                <p>添加脚注和文献引用：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-book"></i>
+                        脚注示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code>Markdown是一种轻量级标记语言[^1]，由John Gruber创建。
+
+主要特性包括[^2]：
+- 简单易学
+- 纯文本格式
+- 高度可读
+
+[^1]: 最初于2004年发布
+[^2]: 参考Markdown官方文档</code></pre>
+                    </div>
+                </div>
+
+                <h3>定义列表</h3>
+                <p>创建术语定义列表：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-bookmark"></i>
+                        定义列表
+                    </h4>
+                    <div class="example-content">
+                <pre><code>Markdown术语解释
+:   一种轻量级标记语言
+
+Git
+:   分布式版本控制系统
+
+API
+:   应用程序编程接口</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-rocket"></i>
+                        高级技巧建议
+                    </h4>
+                    <ul>
+                        <li>HTML用于Markdown不支持的复杂布局</li>
+                        <li>脚注适用于学术文档和正式报告</li>
+                        <li>定义列表适合术语表和说明文档</li>
+                        <li>注意不同平台的兼容性差异</li>
+                        <li>测试在各种环境下的显示效果</li>
+                    </ul>
+                </div>
+
+                <h3>表情符号和特殊符号</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-smile"></i>
+                        表情符号使用
+                    </h4>
+                    <div class="example-content">
+                <pre><code>## 常用表情符号
+
+状态指示：
+- ✅ 已完成
+- 🔄 进行中
+- ⏳ 等待中
+- ❌ 已取消
+- ⚠️  注意
+
+情绪表达：
+- 😊 微笑
+- 👍 点赞
+- 🎉 庆祝
+- 🔥 热门
+- 💡 想法
+
+## 特殊符号
+- © 版权符号
+- ® 注册商标
+- ™ 商标
+- → 箭头
+- ★ 星星</code></pre>
+                    </div>
+                </div>
+
+                <h3>自动生成目录</h3>
+                <p>一些编辑器支持自动生成目录：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-list-alt"></i>
+                        目录生成
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 文档标题
+
+&lt;!-- TOC --&gt;
+- [第一章](#第一章)
+  - [第一节](#第一节)
+  - [第二节](#第二节)
+- [第二章](#第二章)
+&lt;!-- /TOC --&gt;
+
+# 第一章
+## 第一节
+内容...
+## 第二节
+内容...
+
+# 第二章
+内容...</code></pre>
+                    </div>
+                </div>
+
+                <h3>综合应用示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-cogs"></i>
+                        完整的高级文档
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 项目文档 📚
+
+&lt;details&gt;
+&lt;summary&gt;&lt;strong&gt;🚀 快速导航&lt;/strong&gt;&lt;/summary&gt;
+
+- [项目概述](#项目概述)
+- [功能特性](#功能特性)
+- [安装指南](#安装指南)
+- [使用示例](#使用示例)
+- [API参考](#api参考)
+- [常见问题](#常见问题)
+
+&lt;/details&gt;
+
+## 项目概述
+
+这是一个现代化的文档工具，支持多种格式导出[^format]。
+
+### 核心特性 ✨
+- **实时预览** 🔄
+- **多格式导出** 📤
+- **协作编辑** 👥
+- **版本控制** 🗂️
+
+[^format]: 支持PDF、HTML、Word等格式
+
+## 安装指南
+
+### 环境要求
+&lt;div style="background: #f5f5f5; padding: 15px; border-radius: 5px;"&gt;
+
+- Node.js ≥ 14.0.0
+- npm ≥ 6.0.0
+- Git
+
+&lt;/div&gt;
+
+### 安装步骤
+1. 克隆仓库
+   ```bash
+   git clone https://github.com/example/project.git
+                    </code></pre>
+                    </div>
+                </div>
+
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-graduation-cap"></i>
+                        练习：创建高级项目文档
+                    </h4>
+                    <p>使用高级技巧创建一个完整的项目文档：</p>
+                    <ol>
+                        <li>使用HTML创建折叠内容区域</li>
+                        <li>添加脚注引用外部资料</li>
+                        <li>使用定义列表说明技术术语</li>
+                        <li>在适当位置添加表情符号</li>
+                        <li>嵌入可交互的HTML元素</li>
+                        <li>创建自动生成的目录</li>
+                        <li>使用特殊符号和格式增强可读性</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第11章：Markdown 分割线 -->
+        <section id="chapter-11" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-minus"></i>
+                    Markdown 分割线
+                </h2>
+                <p class="chapter-subtitle">使用水平线组织文档结构</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基本分割线语法</h3>
+                <p>使用三个或更多的连字符、星号或下划线创建分割线：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-ellipsis-h"></i>
+                        分割线示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 使用连字符
+---
+
+# 使用星号
+***
+
+# 使用下划线
+___
+
+# 使用四个或更多字符
+----
+*****
+_____</code></pre>
+                    </div>
+                </div>
+
+                <h3>分割线显示效果</h3>
+                <p>不同编辑器可能显示不同的分割线样式：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-eye"></i>
+                        显示效果对比
+                    </h4>
+                    <div class="example-content">
+                        <h4>第一部分内容</h4>
+                        <p>这是第一部分的内容，介绍分割线的使用。</p>
+                        <hr style="border: none; height: 2px; background: linear-gradient(to right, transparent, #4a90e2, transparent); margin: 30px 0;">
+                        <h4>第二部分内容</h4>
+                        <p>这是第二部分的内容，被分割线隔开。</p>
+                    </div>
+                </div>
+
+                <h3>分割线的最佳实践</h3>
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-grip-lines"></i>
+                        分割线使用指南
+                    </h4>
+                    <ul>
+                        <li><strong>使用场景</strong>：分隔不同主题的章节、区分内容和注释、创建视觉分组</li>
+                        <li><strong>位置选择</strong>：在标题前后、段落之间、代码块之前或之后</li>
+                        <li><strong>数量控制</strong>：避免过度使用，保持文档整洁</li>
+                        <li><strong>前后空行</strong>：确保分割线前后都有空行，增强可读性</li>
+                        <li><strong>一致性</strong>：在整个文档中使用相同风格的分割线</li>
+                    </ul>
+                </div>
+
+                <h3>分割线的实际应用</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-file-alt"></i>
+                        文档结构示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 项目开发文档
+
+## 1. 项目概述
+本项目是一个现代化的Web应用，旨在...
+
+***
+
+## 2. 功能特性
+### 2.1 用户管理
+- 注册登录
+- 个人资料
+- 权限控制
+
+---
+
+### 2.2 内容管理
+- 文章发布
+- 图片上传
+- 评论系统
+
+---
+
+### 2.3 系统管理
+- 数据统计
+- 日志查看
+- 系统设置
+
+***
+
+## 3. 技术架构
+### 3.1 前端技术栈
+- React 18
+- TypeScript
+- Tailwind CSS
+
+---
+
+### 3.2 后端技术栈
+- Node.js
+- Express
+- MongoDB
+
+***
+
+## 4. 开发计划
+### 4.1 第一阶段
+...
+
+---
+
+### 4.2 第二阶段
+...
+
+***
+
+&gt; **注意**：本文档将持续更新，请定期查看最新版本。</code></pre>
+                    </div>
+                </div>
+
+                <h3>高级技巧：自定义分割线</h3>
+                <p>使用HTML和CSS创建自定义风格的分割线：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-paint-brush"></i>
+                        自定义分割线
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 使用HTML创建更复杂的分割线
+
+## 渐变分割线
+&lt;hr style="height: 3px; border: none; background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);"&gt;
+
+## 虚线分割线
+&lt;hr style="border: none; border-top: 2px dashed #aaa; margin: 30px 0;"&gt;
+
+## 带图标的分割线
+&lt;div style="text-align: center; margin: 40px 0;"&gt;
+    &lt;span style="background: white; padding: 0 20px; color: #666;"&gt;
+        &lt;i class="fas fa-star"&gt;&lt;/i&gt;
+    &lt;/span&gt;
+    &lt;hr style="margin-top: -12px; border: none; border-top: 1px solid #ddd;"&gt;
+&lt;/div&gt;
+
+## 阴影分割线
+&lt;hr style="height: 1px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"&gt;
+
+## 双线分割线
+&lt;hr style="height: 6px; border: none; border-top: 3px double #333;"&gt;
+
+# 纯Markdown的简单分割线
+***
+---</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-divide"></i>
+                        练习：创建结构清晰的文档
+                    </h4>
+                    <p>创建一个"个人年度总结"文档，要求：</p>
+                    <ol>
+                        <li>使用三种不同的分割线风格（连字符、星号、自定义）</li>
+                        <li>将文档分为至少5个主要部分</li>
+                        <li>每个主要部分内部使用较细的分割线</li>
+                        <li>创建视觉层次：使用不同粗细/样式的分割线</li>
+                        <li>在关键部分后添加强调性的分割线</li>
+                        <li>文档末尾添加一个特殊的分割线作为结束标记</li>
+                    </ol>
+                    <p><strong>进阶挑战</strong>：使用HTML和CSS创建一个带有渐变效果和图标的自定义分割线。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第12章：Markdown 数学公式 -->
+        <section id="chapter-12" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-superscript"></i>
+                    Markdown 数学公式
+                </h2>
+                <p class="chapter-subtitle">使用LaTeX语法编写数学公式</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>数学公式基础</h3>
+                <p>Markdown使用LaTeX语法支持数学公式渲染：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-square-root-alt"></i>
+                        行内公式与块级公式
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 行内公式：使用单个美元符号包裹
+圆的面积公式：$A = \pi r^2$
+
+# 块级公式：使用两个美元符号包裹
+$$
+E = mc^2
+$$
+
+# 显示方程
+$$
+x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+$$</code></pre>
+                    </div>
+                </div>
+
+                <h3>基本数学符号</h3>
+                <p>常用的LaTeX数学符号和命令：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-calculator"></i>
+                        常用数学符号
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 希腊字母
+$\alpha, \beta, \gamma, \Gamma, \pi, \Pi, \omega, \Omega$
+
+# 上下标
+$x^2, x_i, x_{i,j}, a^{b^c}$
+
+# 分数
+$\frac{1}{2}, \frac{a+b}{c-d}$
+
+# 根号
+$\sqrt{2}, \sqrt[3]{8}, \sqrt{x^2 + y^2}$
+
+# 求和与积分
+$\sum_{i=1}^{n} i, \int_{0}^{1} x^2 dx, \lim_{x \to \infty} f(x)$
+
+# 矩阵
+$\begin{matrix} 1 &amp; 2 \\ 3 &amp; 4 \end{matrix}$
+
+# 括号
+$( ), [ ], \{ \}, \langle \rangle, \left( \frac{1}{2} \right)$</code></pre>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <h4 class="tip-title">
+                        <i class="fas fa-lightbulb"></i>
+                        数学公式编写技巧
+                    </h4>
+                    <ul>
+                        <li><strong>使用转义字符</strong>：反斜杠用于特殊符号，如 $\backslash$sum 表示求和</li>
+                        <li><strong>正确使用花括号</strong>：将复杂表达式用花括号括起来，如 $x_{i,j}^{2}$</li>
+                        <li><strong>对齐多行公式</strong>：使用 <code>aligned</code> 或 <code>align</code> 环境</li>
+                        <li><strong>测试渲染</strong>：在不同的预览器中测试公式显示效果</li>
+                        <li><strong>参考文档</strong>：保存常用的LaTeX命令速查表</li>
+                    </ul>
+                </div>
+
+                <h3>数学公式实例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-chart-line"></i>
+                        实际数学公式示例
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 二次方程求根公式
+$$
+x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+$$
+
+# 欧拉公式
+$$
+e^{i\pi} + 1 = 0
+$$
+
+# 傅里叶变换
+$$
+\mathcal{F}(\omega) = \int_{-\infty}^{\infty} f(t) e^{-i\omega t} dt
+$$
+
+# 矩阵乘法
+$$
+\begin{bmatrix}
+a_{11} &amp; a_{12} \\
+a_{21} &amp; a_{22}
+\end{bmatrix}
+\times
+\begin{bmatrix}
+b_{11} &amp; b_{12} \\
+b_{21} &amp; b_{22}
+\end{bmatrix}
+=
+\begin{bmatrix}
+a_{11}b_{11} + a_{12}b_{21} &amp; a_{11}b_{12} + a_{12}b_{22} \\
+a_{21}b_{11} + a_{22}b_{21} &amp; a_{21}b_{12} + a_{22}b_{22}
+\end{bmatrix}
+$$
+
+# 多行公式对齐
+$$
+\begin{aligned}
+f(x) &amp;= (x+1)^2 \\
+     &amp;= x^2 + 2x + 1
+\end{aligned}
+$$
+
+# 概率公式
+$$
+P(A|B) = \frac{P(B|A)P(A)}{P(B)}
+$$</code></pre>
+                    </div>
+                </div>
+
+                <h3>复杂数学文档示例</h3>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-file-contract"></i>
+                        完整数学报告
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 数学分析报告
+
+## 1. 问题描述
+
+给定函数 $f(x) = x^3 - 3x^2 + 2$，求：
+
+1. 函数的导数
+2. 极值点
+3. 函数图像
+
+---
+
+## 2. 求解过程
+
+### 2.1 求导
+$$
+\begin{aligned}
+f(x) &amp;= x^3 - 3x^2 + 2 \\
+f'(x) &amp;= \frac{d}{dx}(x^3) - \frac{d}{dx}(3x^2) + \frac{d}{dx}(2) \\
+      &amp;= 3x^2 - 6x
+\end{aligned}
+$$
+
+### 2.2 求极值点
+
+令 $f'(x) = 0$：
+$$
+\begin{aligned}
+3x^2 - 6x &amp;= 0 \\
+3x(x - 2) &amp;= 0 \\
+x &amp;= 0 \quad \text{或} \quad x = 2
+\end{aligned}
+$$
+
+计算二阶导数：
+$$
+f''(x) = 6x - 6
+$$
+
+判断极值点：
+- 当 $x = 0$ 时，$f''(0) = -6 &lt; 0$，故 $f(0) = 2$ 是极大值
+- 当 $x = 2$ 时，$f''(2) = 6 &gt; 0$，故 $f(2) = -2$ 是极小值
+
+---
+
+## 3. 结果总结
+
+函数 $f(x) = x^3 - 3x^2 + 2$ 的性质：
+
+- **定义域**：$(-\infty, \infty)$
+- **极值点**：
+  - 极大值点：$(0, 2)$
+  - 极小值点：$(2, -2)$
+- **导数**：$f'(x) = 3x^2 - 6x$
+- **二阶导**：$f''(x) = 6x - 6$
+
+函数图像在 $(-\infty, 0)$ 上凸，在 $(0, 2)$ 上凹，在 $(2, \infty)$ 上凸。
+
+---
+
+## 4. 应用扩展
+
+该函数可用于描述物理运动中的位移与时间关系，其中：
+- $f(t)$ 表示位移
+- $f'(t)$ 表示速度
+- $f''(t)$ 表示加速度</code></pre>
+                    </div>
+                </div>
+
+                <h3>KaTeX扩展功能</h3>
+                <p>KaTeX支持许多高级数学功能：</p>
+
+                <div class="example">
+                    <h4 class="example-title">
+                        <i class="fas fa-rocket"></i>
+                        KaTeX高级功能
+                    </h4>
+                    <div class="example-content">
+                <pre><code># 颜色标注
+$$
+\color{blue}{x^2} + \color{red}{2x} + \color{green}{1} = 0
+$$
+
+# 括号大小调整
+$$
+\left( \frac{\frac{a}{b}}{c} \right)
+\quad
+\Big( \Big) \quad \bigg( \bigg) \quad \Bigg( \Bigg)
+$$
+
+# 多行对齐公式
+$$
+\begin{align}
+  (a+b)^2 &amp;= a^2 + 2ab + b^2 \\
+  (a-b)^2 &amp;= a^2 - 2ab + b^2 \\
+  a^2 - b^2 &amp;= (a+b)(a-b)
+\end{align}
+$$
+
+# 分段函数
+$$
+f(x) =
+\begin{cases}
+  x^2 &amp; \text{如果 } x \ge 0 \\
+  -x &amp; \text{如果 } x &lt; 0
+\end{cases}
+$$
+
+# 极限和积分
+$$
+\lim_{x \to 0} \frac{\sin x}{x} = 1
+\quad
+\int_{a}^{b} f(x) \, dx = F(b) - F(a)
+$$</code></pre>
+                    </div>
+                </div>
+
+                <div class="practice">
+                    <h4 class="practice-title">
+                        <i class="fas fa-square-root-variable"></i>
+                        练习：创建数学学习笔记
+                    </h4>
+                    <p>创建一个包含以下内容的数学笔记：</p>
+                    <ol>
+                        <li><strong>基础代数</strong>：二次方程求根公式及其推导过程</li>
+                        <li><strong>几何</strong>：勾股定理的三种证明方法</li>
+                        <li><strong>三角函数</strong>：基本恒等式和欧拉公式</li>
+                        <li><strong>微积分</strong>：导数的定义和基本求导公式</li>
+                        <li><strong>概率统计</strong>：贝叶斯定理和正态分布公式</li>
+                    </ol>
+                    <p><strong>要求</strong>：</p>
+                    <ul>
+                        <li>每个部分使用适当的数学公式</li>
+                        <li>使用行内公式和块级公式</li>
+                        <li>包含公式推导过程</li>
+                        <li>添加必要的文字说明</li>
+                        <li>使用分割线分隔不同章节</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="chapter-13" class="chapter">
+
+
+            <p>图表在技术文档中非常重要，它可以帮助我们：</p>
+            <ul>
+                <li>可视化复杂的数据关系</li>
+                <li>展示系统架构和工作流程</li>
+                <li>更清晰地表达思想和概念</li>
+            </ul>
+            <hr>
+
+            <h2>常见的 Markdown 图表工具</h2>
+            <h3>Mermaid</h3>
+            <p>Mermaid 是最流行的 Markdown 图表工具之一，它允许你使用简单的文本语法生成各种图表。</p>
+            <h4>支持图表类型：</h4>
+            <ul>
+                <li>流程图 (Flowchart)</li>
+                <li>序列图 (Sequence Diagram)</li>
+                <li>类图 (Class Diagram)</li>
+                <li>状态图 (State Diagram)</li>
+                <li>甘特图 (Gantt Chart)</li>
+                <li>饼图 (Pie Chart)</li>
+            </ul>
+            <h3>流程图</h3>
+            <pre>
+```mermaid
+graph TD
+    A[开始] --&gt; B{条件判断}
+    B --&gt;|Yes| C[执行操作A]
+    B --&gt;|No| D[执行操作B]
+    C --&gt; E[结束]
+    D --&gt; E
+```</pre>
+            <p><img decoding="async" src="https://www.runoob.com/wp-content/uploads/2025/05/0da92546-9c57-45b6-be0c-15f85d6a25d8.png"></p>
+
+            <h4>流程图方向</h4>
+            <ul>
+                <li><code>TD</code> 或 <code>TB</code>：从上到下</li>
+                <li><code>BT</code>：从下到上</li>
+                <li><code>RL</code>：从右到左</li>
+                <li><code>LR</code>：从左到右</li>
+            </ul>
+
+            <h4>节点形状</h4>
+            <ul>
+                <li><code>A[方形]</code>：矩形</li>
+                <li><code>B(圆角矩形)</code>：圆角矩形</li>
+                <li><code>C{菱形}</code>：菱形（决策）</li>
+                <li><code>D((圆形))</code>：圆形</li>
+                <li><code>E&gt;旗帜形]</code>：旗帜形</li>
+            </ul>
+            <h4>连接线类型</h4>
+            <ul>
+                <li><code>--&gt;</code> 实线箭头</li>
+                <li><code>-.-&gt;</code> 虚线箭头</li>
+                <li><code>==&gt;</code> 粗实线箭头</li>
+                <li><code>--</code> 实线</li>
+                <li><code>-.</code> 虚线</li>
+            </ul>
+
+            <hr>
+
+
+            <h3>时序图和甘特图</h3>
+            <h4>时序图（Sequence Diagram）</h4>
+            <pre>
+```mermaid
+sequenceDiagram
+    participant A as 用户
+    participant B as 系统
+    participant C as 数据库
+
+    A-&gt;&gt;B: 登录请求
+    B-&gt;&gt;C: 验证用户信息
+    C--&gt;&gt;B: 返回验证结果
+    B--&gt;&gt;A: 登录成功/失败
+```
+</pre>
+            <p><img decoding="async" src="https://www.runoob.com/wp-content/uploads/2025/05/5ac5a6e2-77ae-4a57-83c4-38ecf01178ea.png"></p>
+            <p>时序图语法要点：</p>
+            <ul>
+                <li><code>participant</code> 定义参与者</li>
+                <li><code>-&gt;&gt;</code> 实线箭头</li>
+                <li><code>--&gt;&gt;</code> 虚线箭头</li>
+                <li><code>note</code> 添加注释</li>
+            </ul>
+            <h4>甘特图（Gantt Chart）</h4>
+            <pre>
+```mermaid
+gantt
+    title 项目开发计划
+    dateFormat  YYYY-MM-DD
+    section 设计阶段
+    需求分析      :done,    des1, 2024-01-01,2024-01-15
+    UI设计       :active,  des2, 2024-01-10, 30d
+    section 开发阶段
+    前端开发      :         dev1, after des2, 45d
+    后端开发      :         dev2, 2024-02-01, 60d
+    section 测试阶段
+    单元测试      :         test1, after dev1, 15d
+    集成测试      :         test2, after dev2, 10d
+```
+</pre>
+            <p><img decoding="async" src="https://www.runoob.com/wp-content/uploads/2025/05/69c60edb-81b2-4ad5-8815-86d370fb978d.png"></p>
+            <p>甘特图语法要点：</p>
+            <ul>
+                <li><code>title</code> 设置标题</li>
+                <li><code>dateFormat</code> 定义日期格式</li>
+                <li><code>section</code> 定义阶段</li>
+                <li>任务状态：<code>done</code>（已完成）、<code>active</code>（进行中）、<code>crit</code>（关键）</li>
+            </ul>
+
+            <h3>饼图</h3>
+            <pre>
+```mermaid
+pie
+    title 浏览器市场份额
+    "Chrome" : 65
+    "Safari" : 15
+    "Firefox" : 10
+    "其他" : 10
+```</pre>
+            <p><img decoding="async" src="https://www.runoob.com/wp-content/uploads/2025/05/ab87f3a9-36ce-4fc1-a274-a470d3024132.png"></p>
+            <hr>
+
+            <h2>图表类型详解</h2>
+            <h3>流程图 (Flowchart)</h3>
+            <p>流程图是最常用的图表类型，用于展示过程或算法流程。</p>
+            <h4>Mermaid 示例：</h4>
+            <pre>
+```mermaid
+graph LR
+    A[开始] --&gt; B{条件判断}
+    B --&gt;|是| C[执行操作1]
+    B --&gt;|否| D[执行操作2]
+    C --&gt; E[结束]
+    D --&gt; E
+```</pre>
+
+            <h4>语法说明：</h4>
+            <ul>
+                <li><code>graph</code> 声明流程图</li>
+                <li><code>LR</code> 表示从左到右布局 (可选 TB/RL/BT)</li>
+                <li><code>--&gt;</code> 表示箭头连接</li>
+                <li><code>[]</code> 表示矩形节点</li>
+                <li><code>{}</code> 表示菱形条件节点</li>
+            </ul>
+            <hr>
+
+            <h3>序列图 (Sequence Diagram)</h3>
+            <p>序列图展示对象之间的交互顺序。</p>
+            <h4>Mermaid 示例：</h4>
+            <pre>
+```mermaid
+sequenceDiagram
+    participant 用户
+    participant 系统
+    用户-&gt;&gt;系统: 登录请求
+    系统--&gt;&gt;用户: 验证请求
+    用户-&gt;&gt;系统: 提交凭证
+    系统--&gt;&gt;用户: 登录成功
+```</pre>
+
+            <h4>语法说明：</h4>
+            <ul>
+                <li><code>participant</code> 定义参与者</li>
+                <li><code>-&gt;&gt;</code> 表示实线箭头</li>
+                <li><code>--&gt;&gt;</code> 表示虚线箭头</li>
+            </ul>
+            <hr>
+
+            <h3>类图 (Class Diagram)</h3>
+            <p>类图用于面向对象设计，展示类及其关系。</p>
+
+            <pre>
+```mermaid
+classDiagram
+    class 用户 {
+        +用户名: string
+        +密码: string
+        +登录()
+    }
+
+    class 订单 {
+        +订单号: int
+        +创建日期: date
+        +计算总价()
+    }
+
+    用户 "1" --&gt; "n" 订单
+```</pre>
+
+            <hr>
+
+            <h2>高级技巧</h2>
+            <h3>1. 主题定制</h3>
+            <p>Mermaid 允许自定义图表样式：</p>
+            <pre>
+```mermaid
+%%{init: {'theme': 'forest'}}%%
+pie
+    title 自定义主题
+    "项目A" : 30
+    "项目B" : 50
+    "项目C" : 20
+```</pre><p><img decoding="async" src="https://www.runoob.com/wp-content/uploads/2025/05/545d10c3-e07b-410c-8542-350a03227fb9.png"></p>
+            <h3>2. 交互式图表</h3>
+            <p>一些工具支持添加交互功能：</p>
+            <pre>
+```mermaid
+graph TD
+    A[点击我] --&gt; B[显示详细信息]
+    click A "https://www.runoob.com" "这是提示文本"
+```
+</pre><p><img decoding="async" src="https://www.runoob.com/wp-content/uploads/2025/05/0e13cd9e-d692-45db-b7cf-2e55e27176b1.png"></p>
+            <h3>3. 导出图表</h3>
+            <p>大多数工具支持将图表导出为：</p>
+            <ul>
+                <li>PNG 图片</li>
+                <li>SVG 矢量图</li>
+                <li>PDF 文档</li>
+            </ul>
+            <hr>
+
+            <h2>工具支持情况</h2>
+            <table class="reference">
+                <thead>
+                <tr>
+                    <th>工具/平台</th>
+                    <th>Mermaid</th>
+                    <th>PlantUML</th>
+                    <th>Graphviz</th>
+                </tr>
+                </thead>
+                <tbody><tr>
+                    <td>GitHub</td>
+                    <td>&#x2714;</td>
+                    <td>&#x2716;</td>
+                    <td>&#x2716;</td>
+                </tr>
+                <tr>
+                    <td>GitLab</td>
+                    <td>&#x2714;</td>
+                    <td>&#x2714;</td>
+                    <td>&#x2714;</td>
+                </tr>
+                <tr>
+                    <td>VS Code</td>
+                    <td>插件</td>
+                    <td>插件</td>
+                    <td>插件</td>
+                </tr>
+                <tr>
+                    <td>Typora</td>
+                    <td>&#x2714;</td>
+                    <td>&#x2716;</td>
+                    <td>&#x2716;</td>
+                </tr>
+                <tr>
+                    <td>Obsidian</td>
+                    <td>插件</td>
+                    <td>插件</td>
+                    <td>插件</td>
+                </tr>
+                </tbody></table>
+            <hr>
+
+            <h2>最佳实践</h2>
+            <ol>
+                <li><strong>保持简洁</strong>：图表应该简单明了，避免过多细节</li>
+                <li><strong>统一风格</strong>：同一文档中的图表应保持一致的风格</li>
+                <li><strong>添加说明</strong>：为复杂图表添加文字说明</li>
+                <li><strong>版本控制</strong>：文本格式的图表可以很好地与 Git 配合使用</li>
+                <li><strong>测试渲染</strong>：在不同平台上测试图表显示效果</li>
+            </ol>
+        </section>
+
+        <section id="chapter-14" class="chapter">
+            <h1>Markdown 实战</h1>
+            <h2>个人简历制作</h2>
+            <h3>简历结构设计</h3>
+            <p>一份优秀的Markdown简历应该包含以下核心结构：</p>
+            <pre>
+# 姓名
+## 联系方式
+## 职业目标/个人简介
+## 工作经验
+## 教育背景
+## 技能清单
+## 项目经历
+## 其他信息</pre>
+            <h3>
+                完整简历示例</h3>
+
+            <pre># 张三 | 前端开发工程师
+
+## &amp;#x1f4de; 联系方式
+- **邮箱**: zhangsan@email.com
+- **电话**: 138-0000-0000
+- **GitHub**: [github.com/zhangsan](https://github.com/zhangsan)
+- **LinkedIn**: [linkedin.com/in/zhangsan](https://linkedin.com/in/zhangsan)
+- **地址**: 上海市浦东新区
+
+## &amp;#x1f3af; 职业目标
+具有3年前端开发经验的工程师，专注于React生态系统和现代化Web应用开发。寻求在创新型公司中担任高级前端开发职位，希望参与大型项目的架构设计和团队协作。
+
+## &amp;#x1f4bc; 工作经验
+
+### 高级前端开发工程师 | ABC科技有限公司
+**2022.03 - 至今**
+
+- 负责公司核心产品的前端开发，用户量达100万+
+- 使用React、TypeScript构建可维护的大型单页应用
+- 与产品和设计团队协作，将设计稿转化为高质量的用户界面
+- 建立前端组件库，提升团队开发效率30%
+- **技术栈**: React, TypeScript, Redux, Webpack, Jest
+
+### 前端开发工程师 | XYZ互联网公司
+**2021.06 - 2022.02**
+
+- 参与电商平台的前端开发和维护工作
+- 优化页面性能，首屏加载时间减少40%
+- 负责移动端H5页面开发，适配多种设备
+- **技术栈**: Vue.js, JavaScript, SCSS, Element UI</pre>
+
+
+            <h3>信息层次划分</h3>
+            <p>Markdown 简历的信息层次应该遵循以下原则：</p>
+            <ol>
+                <li><strong>一级标题（#）</strong>: 姓名和职位</li>
+                <li><strong>二级标题（##）</strong>: 主要板块（联系方式、工作经验等）</li>
+                <li><strong>三级标题（###）</strong>: 具体职位或项目名称</li>
+                <li><strong>四级标题（####）</strong>: 子项目或详细分类</li>
+                <li><strong>粗体文本</strong>: 重要信息强调</li>
+                <li><strong>列表</strong>: 技能点或职责描述</li>
+            </ol>
+            <h4>层次划分示例</h4>
+            <pre>## &amp;#x1f6e0;&amp;#xfe0f; 技能清单
+
+### 编程语言
+- **熟练**: JavaScript, TypeScript, HTML5, CSS3
+- **了解**: Python, Java, Go
+
+### 前端框架
+- **React生态**: React, Redux, React Router, Next.js
+- **Vue生态**: Vue.js, Vuex, Vue Router, Nuxt.js
+- **其他**: Angular基础
+
+### 开发工具
+#### 版本控制
+- Git, GitHub, GitLab
+
+#### 构建工具
+- Webpack, Vite, Rollup
+- Babel, PostCSS
+
+#### 测试工具
+- Jest, Cypress, Testing Library</pre>
+
+            <h3>格式美化技巧</h3>
+            <h4>使用 Emoji 增强视觉效果</h4>
+            <pre>
+## &amp;#x1f4f1; 联系方式
+## &amp;#x1f4bc; 工作经验
+## &amp;#x1f393; 教育背景
+## &amp;#x1f6e0;&amp;#xfe0f; 技能清单
+## &amp;#x1f680; 项目经历
+## &amp;#x1f3c6; 获奖经历
+</pre>
+            <h4>巧用表格展示信息</h4>
+            <pre>
+## &amp;#x1f4ca; 技能评估
+
+| 技能类别 | 具体技能 | 熟练程度 |
+|---------|---------|---------|
+| 前端框架 | React | &amp;#x2b50;&amp;#x2b50;&amp;#x2b50;&amp;#x2b50;&amp;#x2b50; |
+| 前端框架 | Vue.js | &amp;#x2b50;&amp;#x2b50;&amp;#x2b50;&amp;#x2b50; |
+| 编程语言 | TypeScript | &amp;#x2b50;&amp;#x2b50;&amp;#x2b50;&amp;#x2b50; |
+| 编程语言 | JavaScript | &amp;#x2b50;&amp;#x2b50;&amp;#x2b50;&amp;#x2b50;&amp;#x2b50; |
+</pre>
+            <h4>使用引用块突出重点</h4>
+            <pre>
+## &amp;#x1f3af; 职业亮点
+
+&gt; **核心优势**: 3年大型项目开发经验，熟悉完整的前端开发流程
+&gt;
+&gt; **技术特长**: React + TypeScript技术栈，具备良好的代码规范意识
+&gt;
+&gt; **团队协作**: 具备跨部门沟通能力，参与过多个敏捷开发项目
+</pre>
+            <h4>链接和徽章美化</h4>
+            <pre>
+## &amp;#x1f517; 在线作品
+
+[![个人网站](https://img.shields.io/badge/Website-zhangsan.dev-blue)](https://zhangsan.dev)
+[![GitHub](https://img.shields.io/badge/GitHub-zhangsan-black)](https://github.com/zhangsan)
+[![掘金](https://img.shields.io/badge/掘金-@张三-blue)](https://juejin.cn/user/zhangsan)
+</pre>			<!-- 其他扩展 -->
+        </section>
+    
+        
+        <!-- 第15章：Markdown 测验 -->
+        <section id="chapter-15" class="chapter">
+            <div class="chapter-header">
+                <h2 class="chapter-title">
+                    <i class="fas fa-question-circle"></i>
+                    Markdown 测验
+                </h2>
+                <p class="chapter-subtitle">测试您的 Markdown 知识掌握情况</p>
+            </div>
+
+            <div class="markdown-content">
+                <h3>基础知识测验</h3>
+
+                <div class="quiz-intro">
+                    <p>本测验包含三种题型：选择题、判断题和简答题。完成后点击提交按钮查看成绩和答案解析。</p>
+                    <div class="quiz-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-question"></i>
+                            <span>总题目：11题</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-clock"></i>
+                            <span>建议时间：20分钟</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-star"></i>
+                            <span>满分：100分</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 选择题部分 -->
+                <div class="quiz-section">
+                    <h4><i class="fas fa-list-ol"></i> 选择题（每题7分，共35分）</h4>
+                    <p>请选择正确的答案：</p>
+
+                    <div class="quiz-question" data-type="choice" data-points="7" data-correct="B">
+                        <div class="question-header">
+                            <span class="question-number">1.</span>
+                            <span class="question-text">如何创建二级标题？</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q1" value="A">
+                                <span class="option-letter">A.</span>
+                                <span># 标题</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q1" value="B">
+                                <span class="option-letter">B.</span>
+                                <span>## 标题</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q1" value="C">
+                                <span class="option-letter">C.</span>
+                                <span>### 标题</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q1" value="D">
+                                <span class="option-letter">D.</span>
+                                <span>#### 标题</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：B</strong></p>
+                            <p><strong>解析：</strong>Markdown中，#的数量表示标题级别，#是1级，##是2级，以此类推。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="choice" data-points="7" data-correct="A">
+                        <div class="question-header">
+                            <span class="question-number">2.</span>
+                            <span class="question-text">如何正确表示加粗文本？</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q2" value="A">
+                                <span class="option-letter">A.</span>
+                                <span>**加粗文本**</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q2" value="B">
+                                <span class="option-letter">B.</span>
+                                <span>++加粗文本++</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q2" value="C">
+                                <span class="option-letter">C.</span>
+                                <span>{{加粗文本}}</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q2" value="D">
+                                <span class="option-letter">D.</span>
+                                <span>[加粗文本]</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：A</strong></p>
+                            <p><strong>解析：</strong>Markdown使用两个星号**或两个下划线__表示加粗。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="choice" data-points="7" data-correct="D">
+                        <div class="question-header">
+                            <span class="question-number">3.</span>
+                            <span class="question-text">以下哪种方式可以创建无序列表？</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q3" value="A">
+                                <span class="option-letter">A.</span>
+                                <span>使用 - 符号</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q3" value="B">
+                                <span class="option-letter">B.</span>
+                                <span>使用 * 符号</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q3" value="C">
+                                <span class="option-letter">C.</span>
+                                <span>使用 + 符号</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q3" value="D">
+                                <span class="option-letter">D.</span>
+                                <span>以上都可以</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：D</strong></p>
+                            <p><strong>解析：</strong>Markdown中，-、*、+都可以用于创建无序列表。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="choice" data-points="7" data-correct="C">
+                        <div class="question-header">
+                            <span class="question-number">4.</span>
+                            <span class="question-text">如何插入一个链接？</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q4" value="A">
+                                <span class="option-letter">A.</span>
+                                <span>&lt;链接文字&gt;URL</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q4" value="B">
+                                <span class="option-letter">B.</span>
+                                <span>[URL](链接文字)</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q4" value="C">
+                                <span class="option-letter">C.</span>
+                                <span>[链接文字](URL)</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q4" value="D">
+                                <span class="option-letter">D.</span>
+                                <span>{链接文字}[URL]</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：C</strong></p>
+                            <p><strong>解析：</strong>Markdown链接语法是[链接文字](URL)，方括号内是显示的文字，圆括号内是URL地址。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="choice" data-points="7" data-correct="B">
+                        <div class="question-header">
+                            <span class="question-number">5.</span>
+                            <span class="question-text">如何创建代码块？</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q5" value="A">
+                                <span class="option-letter">A.</span>
+                                <span>使用一对反引号 `code`</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q5" value="B">
+                                <span class="option-letter">B.</span>
+                                <span>使用三对反引号 ```code```</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q5" value="C">
+                                <span class="option-letter">C.</span>
+                                <span>使用四个空格缩进</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q5" value="D">
+                                <span class="option-letter">D.</span>
+                                <span>B和C都可以</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：D</strong></p>
+                            <p><strong>解析：</strong>Markdown中创建代码块有两种方式：使用三个反引号包围，或使用四个空格缩进。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 判断题部分 -->
+                <div class="quiz-section">
+                    <h4><i class="fas fa-check-circle"></i> 判断题（每题5分，共20分）</h4>
+                    <p>判断以下说法是否正确：</p>
+
+                    <div class="quiz-question" data-type="truefalse" data-points="5" data-correct="true">
+                        <div class="question-header">
+                            <span class="question-number">6.</span>
+                            <span class="question-text">Markdown中可以使用HTML标签。</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q6" value="true">
+                                <span class="option-letter">✓</span>
+                                <span>正确</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q6" value="false">
+                                <span class="option-letter">✗</span>
+                                <span>错误</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：正确</strong></p>
+                            <p><strong>解析：</strong>Markdown支持直接嵌入HTML代码，当Markdown语法无法实现某些效果时，可以使用HTML。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="truefalse" data-points="5" data-correct="false">
+                        <div class="question-header">
+                            <span class="question-number">7.</span>
+                            <span class="question-text">Markdown文件必须以.md为扩展名。</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q7" value="true">
+                                <span class="option-letter">✓</span>
+                                <span>正确</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q7" value="false">
+                                <span class="option-letter">✗</span>
+                                <span>错误</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：错误</strong></p>
+                            <p><strong>解析：</strong>虽然.md是推荐的文件扩展名，但Markdown可以在任何纯文本文件中使用，只是某些编辑器需要特定扩展名来识别。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="truefalse" data-points="5" data-correct="true">
+                        <div class="question-header">
+                            <span class="question-number">8.</span>
+                            <span class="question-text">在代码块中，可以指定编程语言以实现语法高亮。</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q8" value="true">
+                                <span class="option-letter">✓</span>
+                                <span>正确</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q8" value="false">
+                                <span class="option-letter">✗</span>
+                                <span>错误</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：正确</strong></p>
+                            <p><strong>解析：</strong>使用三个反引号后跟语言名称，如```javascript，可以实现语法高亮。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="truefalse" data-points="5" data-correct="false">
+                        <div class="question-header">
+                            <span class="question-number">9.</span>
+                            <span class="question-text">Markdown表格必须使用HTML标签创建。</span>
+                        </div>
+                        <div class="options">
+                            <label class="option">
+                                <input type="radio" name="q9" value="true">
+                                <span class="option-letter">✓</span>
+                                <span>正确</span>
+                            </label>
+                            <label class="option">
+                                <input type="radio" name="q9" value="false">
+                                <span class="option-letter">✗</span>
+                                <span>错误</span>
+                            </label>
+                        </div>
+                        <div class="explanation" style="display: none;">
+                            <p><strong>正确答案：错误</strong></p>
+                            <p><strong>解析：</strong>Markdown有原生表格语法，使用|和-创建，不需要HTML。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 简答题部分 -->
+                <div class="quiz-section">
+                    <h4><i class="fas fa-pencil-alt"></i> 简答题（共45分）</h4>
+                    <p>请用Markdown语法回答以下问题：</p>
+
+                    <div class="quiz-question" data-type="short" data-points="20" data-requirements="5">
+                        <div class="question-header">
+                            <span class="question-number">10.</span>
+                            <span class="question-text">请用Markdown语法创建一个包含以下元素的文档片段：</span>
+                        </div>
+                        <ul class="question-requirements">
+                            <li>一个一级标题：个人简介（4分）</li>
+                            <li>一个无序列表，列出三项技能（4分）</li>
+                            <li>一个链接到GitHub（4分）</li>
+                            <li>一段加粗的文字（4分）</li>
+                            <li>一个引用块（4分）</li>
+                        </ul>
+                        <div class="answer-area">
+                            <textarea class="short-answer" placeholder="在这里输入您的答案...（使用Markdown语法）" rows="8"></textarea>
+                            <div class="answer-preview" id="preview10"></div>
+                        </div>
+                        <div class="sample-answer" style="display: none;">
+                            <p><strong>参考答案：</strong></p>
+                            <pre><code># 个人简介
+
+## 技能列表
+- **JavaScript** 开发
+- React框架使用
+- 响应式网页设计
+
+## 联系方式
+访问我的[GitHub主页](https://github.com/username)
+
+&gt; 座右铭：持续学习，不断进步</code></pre>
+                            <p><strong>评分规则：</strong>每个要求4分，共20分。检查每个要求是否实现正确。</p>
+                        </div>
+                    </div>
+
+                    <div class="quiz-question" data-type="short" data-points="25" data-requirements="5">
+                        <div class="question-header">
+                            <span class="question-number">11.</span>
+                            <span class="question-text">创建一个简单的Markdown表格，包含以下内容：</span>
+                        </div>
+                        <ul class="question-requirements">
+                            <li>表格标题：学生成绩表（5分）</li>
+                            <li>三列：姓名、科目、成绩（5分）</li>
+                            <li>三行数据（5分）</li>
+                            <li>表格居中对齐（5分）</li>
+                            <li>在表格下方添加注释说明（5分）</li>
+                        </ul>
+                        <div class="answer-area">
+                            <textarea class="short-answer" placeholder="在这里输入您的答案...（使用Markdown语法）" rows="8"></textarea>
+                            <div class="answer-preview" id="preview11"></div>
+                        </div>
+                        <div class="sample-answer" style="display: none;">
+                            <p><strong>参考答案：</strong></p>
+                            <pre><code>## 学生成绩表
+
+| 姓名 | 科目 | 成绩 |
+|:----:|:----:|:----:|
+| 张三 | 数学 | 95   |
+| 李四 | 英语 | 88   |
+| 王五 | 物理 | 92   |
+
+*注：以上为2024年第一学期期末考试成绩*</code></pre>
+                            <p><strong>评分规则：</strong>每个要求5分，共25分。检查每个要求是否实现正确。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交和结果区域 -->
+                <div class="quiz-controls">
+                    <button id="submitQuiz" class="submit-btn">
+                        <i class="fas fa-paper-plane"></i>
+                        提交测验
+                    </button>
+                    <button id="resetQuiz" class="reset-btn">
+                        <i class="fas fa-redo"></i>
+                        重新开始
+                    </button>
+                    <button id="randomizeQuiz" class="random-btn">
+                        <i class="fas fa-random"></i>
+                        随机题目
+                    </button>
+                </div>
+
+                <div class="quiz-results" id="quizResults" style="display: none;">
+                    <div class="results-header">
+                        <h4><i class="fas fa-chart-line"></i> 测验结果</h4>
+                    </div>
+
+                    <div class="score-display">
+                        <div class="score-circle">
+                            <svg width="120" height="120">
+                                <circle class="score-bg" cx="60" cy="60" r="54"></circle>
+                                <circle class="score-progress" cx="60" cy="60" r="54"></circle>
+                                <text class="score-text" x="60" y="65" text-anchor="middle">0</text>
+                            </svg>
+                        </div>
+                        <div class="score-details">
+                            <h5>您的得分：<span id="totalScore">0</span>/100</h5>
+                            <div class="score-breakdown">
+                                <div class="breakdown-item">
+                                    <span>选择题得分：</span>
+                                    <span id="choiceScore">0</span>/35
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>判断题得分：</span>
+                                    <span id="truefalseScore">0</span>/20
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>简答题得分：</span>
+                                    <span id="shortScore">0</span>/45
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="results-summary">
+                        <h5><i class="fas fa-clipboard-check"></i> 答题情况</h5>
+                        <div class="summary-stats">
+                            <div class="stat correct">
+                                <i class="fas fa-check"></i>
+                                <span>正确：<span id="correctCount">0</span>题</span>
+                            </div>
+                            <div class="stat wrong">
+                                <i class="fas fa-times"></i>
+                                <span>错误：<span id="wrongCount">0</span>题</span>
+                            </div>
+                            <div class="stat unanswered">
+                                <i class="fas fa-question"></i>
+                                <span>未答：<span id="unansweredCount">0</span>题</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback" id="quizFeedback">
+                        <!-- 动态反馈信息 -->
+                    </div>
+
+                    <div class="answer-review">
+                        <h5><i class="fas fa-search"></i> 查看解析</h5>
+                        <button id="toggleExplanations" class="toggle-btn">
+                            <i class="fas fa-chevron-down"></i>
+                            显示所有题目解析
+                        </button>
+                        <div class="explanations-container" style="display: none;">
+                            <!-- 所有题目的解析会动态插入到这里 -->
+                        </div>
+                    </div>
+                </div>
+
+                <style>
+                    .quiz-intro {
+                        background: #e8f4fd;
+                        border-radius: 10px;
+                        padding: 20px;
+                        margin-bottom: 30px;
+                        border-left: 4px solid #4a90e2;
+                    }
+
+                    .quiz-stats {
+                        display: flex;
+                        gap: 20px;
+                        margin-top: 15px;
+                        flex-wrap: wrap;
+                    }
+
+                    .stat-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        background: white;
+                        padding: 8px 15px;
+                        border-radius: 6px;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                    }
+
+                    .quiz-section {
+                        margin: 30px 0;
+                        padding: 25px;
+                        background: white;
+                        border-radius: 10px;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                    }
+
+                    body.night-mode .quiz-section {
+                        background: #2d2d2d;
+                    }
+
+                    .quiz-question {
+                        margin: 25px 0;
+                        padding: 20px;
+                        border-radius: 8px;
+                        border: 1px solid #eaeaea;
+                        transition: all 0.3s;
+                    }
+
+                    body.night-mode .quiz-question {
+                        border-color: #444;
+                    }
+
+                    .quiz-question.correct {
+                        border-color: #4CAF50;
+                        background: rgba(76, 175, 80, 0.05);
+                    }
+
+                    .quiz-question.wrong {
+                        border-color: #f44336;
+                        background: rgba(244, 67, 54, 0.05);
+                    }
+
+                    .quiz-question.unanswered {
+                        border-color: #ff9800;
+                        background: rgba(255, 152, 0, 0.05);
+                    }
+
+                    .question-header {
+                        font-size: 16px;
+                        font-weight: 600;
+                        margin-bottom: 15px;
+                        color: #333;
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 8px;
+                    }
+
+                    body.night-mode .question-header {
+                        color: #eee;
+                    }
+
+                    .question-number {
+                        color: #4a90e2;
+                        font-weight: bold;
+                    }
+
+                    .options {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                        margin: 15px 0;
+                    }
+
+                    .option {
+                        display: flex;
+                        align-items: center;
+                        padding: 12px 15px;
+                        border-radius: 6px;
+                        border: 1px solid #ddd;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    body.night-mode .option {
+                        border-color: #555;
+                    }
+
+                    .option:hover {
+                        background: rgba(74, 144, 226, 0.05);
+                        border-color: #4a90e2;
+                    }
+
+                    .option.selected {
+                        background: rgba(74, 144, 226, 0.1);
+                        border-color: #4a90e2;
+                    }
+
+                    .option.correct-answer {
+                        background: rgba(76, 175, 80, 0.1);
+                        border-color: #4CAF50;
+                    }
+
+                    .option.wrong-answer {
+                        background: rgba(244, 67, 54, 0.1);
+                        border-color: #f44336;
+                    }
+
+                    .option input {
+                        margin-right: 10px;
+                    }
+
+                    .option-letter {
+                        font-weight: bold;
+                        color: #4a90e2;
+                        margin-right: 10px;
+                        min-width: 20px;
+                    }
+
+                    .question-requirements {
+                        margin: 15px 0;
+                        padding-left: 20px;
+                    }
+
+                    .question-requirements li {
+                        margin-bottom: 5px;
+                    }
+
+                    .answer-area {
+                        margin: 20px 0;
+                    }
+
+                    .short-answer {
+                        width: 100%;
+                        padding: 15px;
+                        border: 1px solid #ddd;
+                        border-radius: 6px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 14px;
+                        resize: vertical;
+                        min-height: 120px;
+                    }
+
+                    body.night-mode .short-answer {
+                        background: #2d2d2d;
+                        border-color: #555;
+                        color: #ddd;
+                    }
+
+                    .answer-preview {
+                        margin-top: 15px;
+                        padding: 15px;
+                        border: 1px dashed #ddd;
+                        border-radius: 6px;
+                        min-height: 100px;
+                        background: #f9f9f9;
+                    }
+
+                    body.night-mode .answer-preview {
+                        background: #3d3d3d;
+                        border-color: #555;
+                    }
+
+                    .explanation, .sample-answer {
+                        margin-top: 15px;
+                        padding: 15px;
+                        background: #f8f9fa;
+                        border-radius: 6px;
+                        border-left: 4px solid #4a90e2;
+                    }
+
+                    body.night-mode .explanation,
+                    body.night-mode .sample-answer {
+                        background: #3d3d3d;
+                    }
+
+                    .quiz-controls {
+                        display: flex;
+                        gap: 15px;
+                        margin: 40px 0;
+                        justify-content: center;
+                        flex-wrap: wrap;
+                    }
+
+                    .submit-btn, .reset-btn, .random-btn {
+                        padding: 12px 30px;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        transition: all 0.3s;
+                    }
+
+                    .submit-btn {
+                        background: #4a90e2;
+                        color: white;
+                    }
+
+                    .submit-btn:hover {
+                        background: #3a7bc8;
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+                    }
+
+                    .reset-btn {
+                        background: #f5f5f5;
+                        color: #333;
+                    }
+
+                    body.night-mode .reset-btn {
+                        background: #3d3d3d;
+                        color: #ddd;
+                    }
+
+                    .reset-btn:hover {
+                        background: #e0e0e0;
+                        transform: translateY(-2px);
+                    }
+
+                    body.night-mode .reset-btn:hover {
+                        background: #555;
+                    }
+
+                    .random-btn {
+                        background: #9c27b0;
+                        color: white;
+                    }
+
+                    .random-btn:hover {
+                        background: #7b1fa2;
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+                    }
+
+                    .quiz-results {
+                        margin-top: 40px;
+                        padding: 30px;
+                        background: white;
+                        border-radius: 10px;
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                        animation: fadeIn 0.5s ease;
+                    }
+
+                    body.night-mode .quiz-results {
+                        background: #2d2d2d;
+                    }
+
+                    .score-display {
+                        display: flex;
+                        align-items: center;
+                        gap: 40px;
+                        margin: 30px 0;
+                        flex-wrap: wrap;
+                    }
+
+                    .score-circle {
+                        position: relative;
+                    }
+
+                    .score-bg {
+                        fill: none;
+                        stroke: #f0f0f0;
+                        stroke-width: 8;
+                    }
+
+                    body.night-mode .score-bg {
+                        stroke: #444;
+                    }
+
+                    .score-progress {
+                        fill: none;
+                        stroke: #4a90e2;
+                        stroke-width: 8;
+                        stroke-linecap: round;
+                        transform: rotate(-90deg);
+                        transform-origin: center;
+                        stroke-dasharray: 339.292;
+                        stroke-dashoffset: 339.292;
+                        transition: stroke-dashoffset 1s ease;
+                    }
+
+                    .score-text {
+                        font-size: 24px;
+                        font-weight: bold;
+                        fill: #333;
+                    }
+
+                    body.night-mode .score-text {
+                        fill: #ddd;
+                    }
+
+                    .score-details {
+                        flex: 1;
+                        min-width: 250px;
+                    }
+
+                    .score-details h5 {
+                        font-size: 20px;
+                        margin-bottom: 20px;
+                        color: #333;
+                    }
+
+                    body.night-mode .score-details h5 {
+                        color: #eee;
+                    }
+
+                    .score-breakdown {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+
+                    .breakdown-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 8px 0;
+                        border-bottom: 1px solid #eee;
+                    }
+
+                    body.night-mode .breakdown-item {
+                        border-bottom-color: #444;
+                    }
+
+                    .summary-stats {
+                        display: flex;
+                        gap: 20px;
+                        margin-top: 15px;
+                        flex-wrap: wrap;
+                    }
+
+                    .stat {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 10px 20px;
+                        border-radius: 6px;
+                        font-weight: 500;
+                    }
+
+                    .stat.correct {
+                        background: rgba(76, 175, 80, 0.1);
+                        color: #2e7d32;
+                    }
+
+                    .stat.wrong {
+                        background: rgba(244, 67, 54, 0.1);
+                        color: #c62828;
+                    }
+
+                    .stat.unanswered {
+                        background: rgba(255, 152, 0, 0.1);
+                        color: #ef6c00;
+                    }
+
+                    .feedback {
+                        margin: 25px 0;
+                        padding: 20px;
+                        border-radius: 8px;
+                        text-align: center;
+                        font-size: 16px;
+                    }
+
+                    .feedback.excellent {
+                        background: rgba(76, 175, 80, 0.1);
+                        border: 2px solid #4CAF50;
+                        color: #2e7d32;
+                    }
+
+                    .feedback.good {
+                        background: rgba(33, 150, 243, 0.1);
+                        border: 2px solid #2196F3;
+                        color: #1565c0;
+                    }
+
+                    .feedback.average {
+                        background: rgba(255, 152, 0, 0.1);
+                        border: 2px solid #FF9800;
+                        color: #ef6c00;
+                    }
+
+                    .feedback.poor {
+                        background: rgba(244, 67, 54, 0.1);
+                        border: 2px solid #f44336;
+                        color: #c62828;
+                    }
+
+                    .answer-review {
+                        margin-top: 30px;
+                    }
+
+                    .toggle-btn {
+                        width: 100%;
+                        padding: 12px;
+                        background: #f5f5f5;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        transition: all 0.3s;
+                    }
+
+                    body.night-mode .toggle-btn {
+                        background: #3d3d3d;
+                        color: #ddd;
+                    }
+
+                    .toggle-btn:hover {
+                        background: #e0e0e0;
+                    }
+
+                    body.night-mode .toggle-btn:hover {
+                        background: #555;
+                    }
+
+                    .explanations-container {
+                        margin-top: 15px;
+                        max-height: 500px;
+                        overflow-y: auto;
+                        padding: 15px;
+                        background: #f8f9fa;
+                        border-radius: 6px;
+                        border: 1px solid #eaeaea;
+                    }
+
+                    body.night-mode .explanations-container {
+                        background: #3d3d3d;
+                        border-color: #555;
+                    }
+
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(20px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+
+                    @media (max-width: 768px) {
+                        .score-display {
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                        }
+
+                        .summary-stats {
+                            flex-direction: column;
+                        }
+
+                        .quiz-controls {
+                            flex-direction: column;
+                        }
+
+                        .submit-btn, .reset-btn, .random-btn {
+                            width: 100%;
+                            justify-content: center;
+                        }
+                    }
+                </style>
+
+                <script>
+                    // 题目数据库
+                    const questionBank = {
+                        choice: [
+                            {
+                                question: "如何创建三级标题？",
+                                options: [
+                                    "# 标题",
+                                    "## 标题",
+                                    "### 标题",
+                                    "#### 标题"
+                                ],
+                                correct: "C",
+                                explanation: "Markdown中，#的数量表示标题级别，#是1级，##是2级，###是3级，以此类推。"
+                            },
+                            {
+                                question: "如何正确表示斜体文本？",
+                                options: [
+                                    "**斜体文本**",
+                                    "*斜体文本*",
+                                    "++斜体文本++",
+                                    "[斜体文本]"
+                                ],
+                                correct: "B",
+                                explanation: "Markdown使用单个星号*或单个下划线_表示斜体。"
+                            },
+                            {
+                                question: "如何创建有序列表？",
+                                options: [
+                                    "使用 - 符号",
+                                    "使用 1. 数字",
+                                    "使用 * 符号",
+                                    "使用 + 符号"
+                                ],
+                                correct: "B",
+                                explanation: "Markdown中使用数字加句点创建有序列表，如1. 第一项。"
+                            },
+                            {
+                                question: "如何插入图片？",
+                                options: [
+                                    "![图片描述](图片URL)",
+                                    "[图片描述](图片URL)",
+                                    "<图片描述>图片URL",
+                                    "{图片描述}[图片URL]"
+                                ],
+                                correct: "A",
+                                explanation: "Markdown图片语法是![替代文字](图片URL)，方括号内是替代文字，圆括号内是图片URL。"
+                            },
+                            {
+                                question: "如何创建水平分割线？",
+                                options: [
+                                    "---",
+                                    "***",
+                                    "___",
+                                    "以上都可以"
+                                ],
+                                correct: "D",
+                                explanation: "Markdown中，三个或更多的连字符、星号或下划线都可以创建水平分割线。"
+                            }
+                        ],
+                        truefalse: [
+                            {
+                                question: "Markdown文件通常保存为.txt扩展名。",
+                                correct: false,
+                                explanation: "Markdown文件通常保存为.md或.markdown扩展名，而不是.txt。"
+                            },
+                            {
+                                question: "在Markdown中，两个空格加回车可以创建换行。",
+                                correct: true,
+                                explanation: "在Markdown中，行尾添加两个空格然后回车可以创建换行（软换行）。"
+                            },
+                            {
+                                question: "Markdown不支持数学公式。",
+                                correct: false,
+                                explanation: "Markdown通过LaTeX语法支持数学公式，使用$包裹行内公式，$$包裹块级公式。"
+                            },
+                            {
+                                question: "在表格中可以使用冒号指定对齐方式。",
+                                correct: true,
+                                explanation: "在Markdown表格中，使用:---表示左对齐，:---:表示居中对齐，---:表示右对齐。"
+                            },
+                            {
+                                question: "Markdown代码块中不能嵌套其他Markdown元素。",
+                                correct: true,
+                                explanation: "代码块中的内容会按原样显示，不会渲染其中的Markdown语法。"
+                            }
+                        ],
+                        short: [
+                            {
+                                title: "请用Markdown语法创建一个包含以下元素的文档片段：",
+                                requirements: [
+                                    "一个二级标题：学习计划",
+                                    "一个有序列表，列出三个学习目标",
+                                    "一个到百度百科的链接",
+                                    "一段斜体文字",
+                                    "一个任务列表，包含两个任务"
+                                ],
+                                sampleAnswer: `## 学习计划
+
+### 学习目标
+1. 掌握Markdown基础语法
+2. 学会使用高级功能
+3. 完成所有练习
+
+### 相关资源
+访问[百度百科Markdown词条](https://baike.baidu.com/item/Markdown)
+
+*学习是一个持续的过程*
+
+### 任务清单
+- [ ] 完成第一章学习
+- [x] 安装Markdown编辑器`,
+                                points: 20,
+                                requirementsCount: 5
+                            },
+                            {
+                                title: "创建一个产品功能说明文档：",
+                                requirements: [
+                                    "一级标题：产品功能介绍",
+                                    "使用无序列表列出三个功能",
+                                    "每个功能用粗体显示",
+                                    "添加一个代码块示例",
+                                    "包含一个脚注"
+                                ],
+                                sampleAnswer: `# 产品功能介绍
+
+## 主要功能
+- **实时预览**：编辑时实时查看效果
+- **语法高亮**：支持多种编程语言
+- **导出功能**：可导出为PDF、HTML等格式
+
+## 使用示例
+\`\`\`javascript
+// 示例代码
+function hello() {
+    console.log("Hello, Markdown!");
+}
+\`\`\`
+
+## 注意事项
+这是一个强大的编辑工具[^1]。
+
+[^1]: 支持Windows、Mac和Linux系统。`,
+                                points: 20,
+                                requirementsCount: 5
+                            },
+                            {
+                                title: "创建一个包含数学公式的文档：",
+                                requirements: [
+                                    "标题：数学公式示例",
+                                    "行内公式：勾股定理 a²+b²=c²",
+                                    "块级公式：二次方程求根公式",
+                                    "一个有序列表列出两个公式名称",
+                                    "添加公式说明文字"
+                                ],
+                                sampleAnswer: `# 数学公式示例
+
+## 常用公式
+1. 勾股定理：$a^2 + b^2 = c^2$
+2. 二次方程求根公式
+
+### 二次方程求根公式
+$$
+x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+$$
+
+> 以上是数学中常用的两个公式。`,
+                                points: 25,
+                                requirementsCount: 5
+                            }
+                        ]
+                    };
+
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // 初始化测验
+                        initQuiz();
+                        // 加载随机题目
+                        loadRandomQuestions();
+                    });
+
+                    function initQuiz() {
+                        const submitBtn = document.getElementById('submitQuiz');
+                        const resetBtn = document.getElementById('resetQuiz');
+                        const randomBtn = document.getElementById('randomizeQuiz');
+                        const toggleBtn = document.getElementById('toggleExplanations');
+
+                        // 为选择题和判断题添加点击事件
+                        document.addEventListener('change', function(e) {
+                            if (e.target.type === 'radio') {
+                                const option = e.target.closest('.option');
+                                const question = option.closest('.quiz-question');
+
+                                // 移除所有选项的选中状态
+                                question.querySelectorAll('.option').forEach(opt => {
+                                    opt.classList.remove('selected');
+                                });
+
+                                // 添加当前选中状态
+                                option.classList.add('selected');
+                            }
+                        });
+
+                        // 简答题实时预览
+                        document.querySelectorAll('.short-answer').forEach(textarea => {
+                            textarea.addEventListener('input', function() {
+                                const preview = this.closest('.answer-area').querySelector('.answer-preview');
+                                preview.innerHTML = marked.parse(this.value);
+                            });
+                        });
+
+                        // 提交测验
+                        submitBtn.addEventListener('click', function() {
+                            calculateScore();
+                            showResults();
+                            showFeedback();
+                            scrollToResults();
+                        });
+
+                        // 重置测验
+                        resetBtn.addEventListener('click', function() {
+                            resetQuiz();
+                        });
+
+                        // 随机题目
+                        randomBtn.addEventListener('click', function() {
+                            loadRandomQuestions();
+                            resetQuiz();
+                        });
+
+                        // 切换解析显示
+                        toggleBtn.addEventListener('click', function() {
+                            const container = document.querySelector('.explanations-container');
+                            const icon = this.querySelector('i');
+
+                            if (container.style.display === 'none') {
+                                container.style.display = 'block';
+                                icon.className = 'fas fa-chevron-up';
+                                this.innerHTML = '<i class="fas fa-chevron-up"></i> 隐藏所有题目解析';
+                                showAllExplanations();
+                            } else {
+                                container.style.display = 'none';
+                                icon.className = 'fas fa-chevron-down';
+                                this.innerHTML = '<i class="fas fa-chevron-down"></i> 显示所有题目解析';
+                            }
+                        });
+                    }
+
+                    function loadRandomQuestions() {
+                        // 随机选择题（5题）
+                        const choiceQuestions = [...questionBank.choice];
+                        shuffleArray(choiceQuestions);
+
+                        // 更新选择题
+                        const choiceContainer = document.querySelector('.quiz-section:first-child');
+                        const choiceQuestionsDiv = choiceContainer.querySelectorAll('.quiz-question[data-type="choice"]');
+
+                        choiceQuestionsDiv.forEach((div, index) => {
+                            if (index < 5 && choiceQuestions[index]) {
+                                const q = choiceQuestions[index];
+                                const questionNumber = div.querySelector('.question-number');
+                                const questionText = div.querySelector('.question-text');
+                                const options = div.querySelectorAll('.option');
+                                const explanation = div.querySelector('.explanation');
+
+                                // 更新题目编号
+                                questionNumber.textContent = (index + 1) + '.';
+
+                                // 更新题目文本
+                                questionText.textContent = q.question;
+
+                                // 更新选项
+                                options.forEach((option, optIndex) => {
+                                    const optionLetter = option.querySelector('.option-letter');
+                                    const optionText = option.querySelector('span:last-child');
+                                    const input = option.querySelector('input');
+
+                                    optionLetter.textContent = String.fromCharCode(65 + optIndex) + '.';
+                                    optionText.textContent = q.options[optIndex];
+                                    input.value = String.fromCharCode(65 + optIndex);
+                                    input.name = `q${index + 1}`;
+                                });
+
+                                // 更新正确答案和解析
+                                div.dataset.correct = q.correct;
+                                explanation.innerHTML = `<p><strong>正确答案：${q.correct}</strong></p><p><strong>解析：</strong>${q.explanation}</p>`;
+                            }
+                        });
+
+                        // 随机判断题（4题）
+                        const truefalseQuestions = [...questionBank.truefalse];
+                        shuffleArray(truefalseQuestions);
+
+                        // 更新判断题
+                        const tfContainer = document.querySelectorAll('.quiz-section')[1];
+                        const tfQuestionsDiv = tfContainer.querySelectorAll('.quiz-question[data-type="truefalse"]');
+
+                        tfQuestionsDiv.forEach((div, index) => {
+                            if (index < 4 && truefalseQuestions[index]) {
+                                const q = truefalseQuestions[index];
+                                const questionNumber = div.querySelector('.question-number');
+                                const questionText = div.querySelector('.question-text');
+                                const explanation = div.querySelector('.explanation');
+
+                                // 更新题目编号
+                                questionNumber.textContent = (index + 6) + '.';
+
+                                // 更新题目文本
+                                questionText.textContent = q.question;
+
+                                // 更新正确答案和解析
+                                div.dataset.correct = q.correct.toString();
+                                explanation.innerHTML = `<p><strong>正确答案：${q.correct ? '正确' : '错误'}</strong></p><p><strong>解析：</strong>${q.explanation}</p>`;
+
+                                // 更新radio按钮的name
+                                const inputs = div.querySelectorAll('input[type="radio"]');
+                                inputs[0].name = `q${index + 6}`;
+                                inputs[1].name = `q${index + 6}`;
+                            }
+                        });
+
+                        // 随机简答题（2题）
+                        const shortQuestions = [...questionBank.short];
+                        shuffleArray(shortQuestions);
+
+                        // 更新简答题
+                        const shortContainer = document.querySelectorAll('.quiz-section')[2];
+                        const shortQuestionsDiv = shortContainer.querySelectorAll('.quiz-question[data-type="short"]');
+
+                        shortQuestionsDiv.forEach((div, index) => {
+                            if (index < 2 && shortQuestions[index]) {
+                                const q = shortQuestions[index];
+                                const questionNumber = div.querySelector('.question-number');
+                                const questionText = div.querySelector('.question-text');
+                                const requirementsList = div.querySelector('.question-requirements');
+                                const sampleAnswer = div.querySelector('.sample-answer');
+
+                                // 更新题目编号
+                                questionNumber.textContent = (index + 10) + '.';
+
+                                // 更新题目文本
+                                questionText.textContent = q.title;
+
+                                // 更新要求列表
+                                requirementsList.innerHTML = '';
+                                q.requirements.forEach((req, reqIndex) => {
+                                    const li = document.createElement('li');
+                                    li.textContent = req;
+                                    requirementsList.appendChild(li);
+                                });
+
+                                // 更新参考答案
+                                sampleAnswer.innerHTML = `<p><strong>参考答案：</strong></p><pre><code>${q.sampleAnswer}</code></pre><p><strong>评分规则：</strong>每个要求${Math.floor(q.points / q.requirementsCount)}分，共${q.points}分。检查每个要求是否实现正确。</p>`;
+
+                                // 更新数据属性
+                                div.dataset.points = q.points;
+                                div.dataset.requirements = q.requirementsCount;
+
+                                // 清空答案区域
+                                const textarea = div.querySelector('.short-answer');
+                                const preview = div.querySelector('.answer-preview');
+                                textarea.value = '';
+                                preview.innerHTML = '';
+                                textarea.name = `q${index + 10}`;
+                            }
+                        });
+
+                        // 更新题目统计
+                        document.querySelector('.stat-item:first-child span').textContent = '总题目：11题';
+                    }
+
+                    function shuffleArray(array) {
+                        for (let i = array.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [array[i], array[j]] = [array[j], array[i]];
+                        }
+                        return array;
+                    }
+
+                    function calculateScore() {
+                        let choiceScore = 0;
+                        let truefalseScore = 0;
+                        let shortScore = 0;
+                        let correctCount = 0;
+                        let wrongCount = 0;
+                        let unansweredCount = 0;
+
+                        // 重置所有题目状态
+                        document.querySelectorAll('.quiz-question').forEach(question => {
+                            question.classList.remove('correct', 'wrong', 'unanswered');
+                            question.querySelectorAll('.option').forEach(option => {
+                                option.classList.remove('correct-answer', 'wrong-answer');
+                            });
+
+                            const type = question.dataset.type;
+                            const points = parseInt(question.dataset.points);
+                            const correctAnswer = question.dataset.correct;
+
+                            if (type === 'choice' || type === 'truefalse') {
+                                const selectedOption = question.querySelector('input[type="radio"]:checked');
+
+                                if (!selectedOption) {
+                                    question.classList.add('unanswered');
+                                    unansweredCount++;
+                                    return;
+                                }
+
+                                const userAnswer = selectedOption.value;
+
+                                if (userAnswer === correctAnswer) {
+                                    question.classList.add('correct');
+                                    if (type === 'choice') choiceScore += points;
+                                    if (type === 'truefalse') truefalseScore += points;
+                                    correctCount++;
+
+                                    // 标记正确选项
+                                    selectedOption.closest('.option').classList.add('correct-answer');
+                                } else {
+                                    question.classList.add('wrong');
+                                    wrongCount++;
+
+                                    // 标记错误选项和正确选项
+                                    selectedOption.closest('.option').classList.add('wrong-answer');
+                                    question.querySelectorAll('.option').forEach(option => {
+                                        const input = option.querySelector('input');
+                                        if (input && input.value === correctAnswer) {
+                                            option.classList.add('correct-answer');
+                                        }
+                                    });
+                                }
+                            } else if (type === 'short') {
+                                // 简答题评分
+                                const textarea = question.querySelector('.short-answer');
+                                const answer = textarea.value.trim();
+                                const requirementsCount = parseInt(question.dataset.requirements);
+                                const pointsPerRequirement = points / requirementsCount;
+
+                                if (answer === '') {
+                                    question.classList.add('unanswered');
+                                    unansweredCount++;
+                                    return;
+                                }
+
+                                // 检查参考答案
+                                const sampleAnswer = question.querySelector('.sample-answer pre code').textContent;
+                                const sampleLines = sampleAnswer.split('\n').filter(line => line.trim() !== '');
+                                const answerLines = answer.split('\n').filter(line => line.trim() !== '');
+
+                                // 简单匹配：检查是否有相应的Markdown元素
+                                let matchedRequirements = 0;
+
+                                // 检查常见Markdown元素
+                                if (answer.includes('# ')) matchedRequirements++; // 标题
+                                if (answer.includes('- ') || answer.includes('* ') || answer.includes('+ ')) matchedRequirements++; // 列表
+                                if (answer.includes('[') && answer.includes('](') && answer.includes(')')) matchedRequirements++; // 链接
+                                if (answer.includes('**') || answer.includes('__')) matchedRequirements++; // 加粗
+                                if (answer.includes('* ') || answer.includes('_')) matchedRequirements++; // 斜体
+                                if (answer.includes('> ')) matchedRequirements++; // 引用
+                                if (answer.includes('|') && answer.includes('-')) matchedRequirements++; // 表格
+                                if (answer.includes('```')) matchedRequirements++; // 代码块
+
+                                // 确保不超过要求数量
+                                matchedRequirements = Math.min(matchedRequirements, requirementsCount);
+
+                                // 计算得分
+                                const questionScore = Math.round(matchedRequirements * pointsPerRequirement);
+                                shortScore += questionScore;
+
+                                if (questionScore >= points * 0.8) {
+                                    question.classList.add('correct');
+                                    correctCount++;
+                                } else if (questionScore >= points * 0.5) {
+                                    question.classList.add('correct');
+                                    correctCount++;
+                                } else {
+                                    question.classList.add('wrong');
+                                    wrongCount++;
+                                }
+                            }
+                        });
+
+                        const totalScore = choiceScore + truefalseScore + shortScore;
+
+                        // 更新显示分数
+                        document.getElementById('choiceScore').textContent = choiceScore;
+                        document.getElementById('truefalseScore').textContent = truefalseScore;
+                        document.getElementById('shortScore').textContent = shortScore;
+                        document.getElementById('totalScore').textContent = totalScore;
+
+                        // 更新统计
+                        document.getElementById('correctCount').textContent = correctCount;
+                        document.getElementById('wrongCount').textContent = wrongCount;
+                        document.getElementById('unansweredCount').textContent = unansweredCount;
+
+                        // 更新环形图
+                        const progress = document.querySelector('.score-progress');
+                        const circumference = 339.292; // 2 * π * r
+                        const offset = circumference - (circumference * totalScore) / 100;
+                        progress.style.strokeDashoffset = offset;
+
+                        // 更新分数文本动画
+                        const scoreText = document.querySelector('.score-text');
+                        animateValue(scoreText, 0, totalScore, 1000);
+
+                        return {
+                            totalScore,
+                            choiceScore,
+                            truefalseScore,
+                            shortScore,
+                            correctCount,
+                            wrongCount,
+                            unansweredCount
+                        };
+                    }
+
+                    function animateValue(element, start, end, duration) {
+                        let startTimestamp = null;
+                        const step = (timestamp) => {
+                            if (!startTimestamp) startTimestamp = timestamp;
+                            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                            const value = Math.floor(progress * (end - start) + start);
+                            element.textContent = value;
+                            if (progress < 1) {
+                                window.requestAnimationFrame(step);
+                            }
+                        };
+                        window.requestAnimationFrame(step);
+                    }
+
+                    function showResults() {
+                        const results = document.getElementById('quizResults');
+                        results.style.display = 'block';
+                    }
+
+                    function showFeedback() {
+                        const feedback = document.getElementById('quizFeedback');
+                        const totalScore = parseInt(document.getElementById('totalScore').textContent);
+
+                        let message = '';
+                        let feedbackClass = '';
+
+                        if (totalScore >= 90) {
+                            message = '🎉 太棒了！您对Markdown掌握得非常透彻！';
+                            feedbackClass = 'excellent';
+                        } else if (totalScore >= 70) {
+                            message = '👍 做得不错！您对Markdown有很好的理解，但还有一些细节需要加强。';
+                            feedbackClass = 'good';
+                        } else if (totalScore >= 50) {
+                            message = '📚 继续努力！您已经掌握了基础知识，建议复习一下不太熟悉的部分。';
+                            feedbackClass = 'average';
+                        } else {
+                            message = '💪 别灰心！Markdown需要多练习，建议重新学习教程并多做练习。';
+                            feedbackClass = 'poor';
+                        }
+
+                        feedback.innerHTML = `
+                    <p><strong>${message}</strong></p>
+                    <p>建议：${getStudyRecommendation(totalScore)}</p>
+                `;
+                        feedback.className = `feedback ${feedbackClass}`;
+                    }
+
+                    function getStudyRecommendation(score) {
+                        if (score >= 90) {
+                            return '可以尝试使用Markdown编写复杂的项目文档，或学习高级扩展语法如Mermaid图表。';
+                        } else if (score >= 70) {
+                            return '复习第6-10章（代码、链接、图片、表格、高级技巧），加强实战练习。';
+                        } else if (score >= 50) {
+                            return '重新学习第3-5章（文本格式、列表、引用块），并完成所有练习。';
+                        } else {
+                            return '从第1章开始重新学习，确保理解每个基础概念，多动手实践。';
+                        }
+                    }
+
+                    function showAllExplanations() {
+                        const container = document.querySelector('.explanations-container');
+                        container.innerHTML = '';
+
+                        document.querySelectorAll('.quiz-question').forEach((question, index) => {
+                            const explanation = question.querySelector('.explanation');
+                            const sampleAnswer = question.querySelector('.sample-answer');
+
+                            if (explanation || sampleAnswer) {
+                                const questionDiv = document.createElement('div');
+                                questionDiv.className = 'question-explanation';
+                                questionDiv.innerHTML = `
+                            <h6>第${index + 1}题解析</h6>
+                            ${explanation ? explanation.innerHTML : ''}
+                            ${sampleAnswer ? sampleAnswer.innerHTML : ''}
+                        `;
+                                container.appendChild(questionDiv);
+                            }
+                        });
+                    }
+
+                    function resetQuiz() {
+                        // 重置所有选项
+                        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                            radio.checked = false;
+                        });
+
+                        // 重置文本区域
+                        document.querySelectorAll('.short-answer').forEach(textarea => {
+                            textarea.value = '';
+                        });
+
+                        // 重置预览区域
+                        document.querySelectorAll('.answer-preview').forEach(preview => {
+                            preview.innerHTML = '';
+                        });
+
+                        // 重置题目状态
+                        document.querySelectorAll('.quiz-question').forEach(question => {
+                            question.classList.remove('correct', 'wrong', 'unanswered');
+                            question.querySelectorAll('.option').forEach(option => {
+                                option.classList.remove('selected', 'correct-answer', 'wrong-answer');
+                            });
+                        });
+
+                        // 隐藏结果区域
+                        document.getElementById('quizResults').style.display = 'none';
+
+                        // 重置环形图
+                        const progress = document.querySelector('.score-progress');
+                        if (progress) {
+                            progress.style.strokeDashoffset = '339.292';
+                        }
+
+                        const scoreText = document.querySelector('.score-text');
+                        if (scoreText) {
+                            scoreText.textContent = '0';
+                        }
+
+                        // 重置统计
+                        document.getElementById('choiceScore').textContent = '0';
+                        document.getElementById('truefalseScore').textContent = '0';
+                        document.getElementById('shortScore').textContent = '0';
+                        document.getElementById('totalScore').textContent = '0';
+                        document.getElementById('correctCount').textContent = '0';
+                        document.getElementById('wrongCount').textContent = '0';
+                        document.getElementById('unansweredCount').textContent = '0';
+
+                        // 重置反馈
+                        document.getElementById('quizFeedback').innerHTML = '';
+                        document.getElementById('quizFeedback').className = 'feedback';
+
+                        // 重置解析容器
+                        const container = document.querySelector('.explanations-container');
+                        if (container) {
+                            container.innerHTML = '';
+                            container.style.display = 'none';
+                        }
+
+                        // 重置切换按钮
+                        const toggleBtn = document.getElementById('toggleExplanations');
+                        if (toggleBtn) {
+                            toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> 显示所有题目解析';
+                            const icon = toggleBtn.querySelector('i');
+                            if (icon) {
+                                icon.className = 'fas fa-chevron-down';
+                            }
+                        }
+
+                        // 滚动到顶部
+                        window.scrollTo({
+                            top: document.getElementById('chapter-15').offsetTop - 100,
+                            behavior: 'smooth'
+                        });
+                    }
+
+                    function scrollToResults() {
+                        const results = document.getElementById('quizResults');
+                        if (results) {
+                            results.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                    }
+                </script>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- 引入KaTeX支持数学公式 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化夜间模式
+        let nightMode = localStorage.getItem('tutorial_night_mode') === 'true';
+        if (nightMode) {
+            document.body.classList.add('night-mode');
+            document.getElementById('modeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+        }
+
+        // 夜间模式切换
+        const modeToggle = document.getElementById('modeToggle');
+        if (modeToggle) {
+            modeToggle.addEventListener('click', function() {
+                nightMode = !nightMode;
+
+                if (nightMode) {
+                    document.body.classList.add('night-mode');
+                    this.innerHTML = '<i class="fas fa-sun"></i>';
+                    localStorage.setItem('tutorial_night_mode', 'true');
+                } else {
+                    document.body.classList.remove('night-mode');
+                    this.innerHTML = '<i class="fas fa-moon"></i>';
+                    localStorage.setItem('tutorial_night_mode', 'false');
+                }
+            });
+        }
+
+        // 章节导航
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const chapters = document.querySelectorAll('.chapter');
+
+        tocLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const chapterId = this.getAttribute('data-chapter');
+
+                // 移除所有活动的链接
+                tocLinks.forEach(l => l.classList.remove('active'));
+
+                // 添加当前链接的活动状态
+                this.classList.add('active');
+
+                // 隐藏所有章节
+                chapters.forEach(chapter => chapter.classList.remove('active'));
+
+                // 显示选中的章节
+                const targetChapter = document.getElementById(`chapter-${chapterId}`);
+                if (targetChapter) {
+                    targetChapter.classList.add('active');
+
+                    // 滚动到章节顶部
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // 渲染数学公式
+        function renderMath() {
+            const mathElements = document.querySelectorAll('.math-example .katex');
+            mathElements.forEach(element => {
+                try {
+                    katex.render(element.textContent, element, {
+                        throwOnError: false,
+                        displayMode: true
+                    });
+                } catch (e) {
+                    console.error('KaTeX渲染错误:', e);
+                }
+            });
+        }
+
+        // 初始渲染数学公式
+        setTimeout(renderMath, 100);
+
+        // 监听章节切换，重新渲染数学公式
+        tocLinks.forEach(link => {
+            link.addEventListener('click', renderMath);
+        });
+
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if (targetId.startsWith('#chapter-')) return;
+
+                e.preventDefault();
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 自动高亮当前章节
+        function highlightCurrentChapter() {
+            const scrollPosition = window.scrollY + 100;
+
+            let currentChapter = null;
+
+            chapters.forEach(chapter => {
+                const chapterTop = chapter.offsetTop;
+                const chapterBottom = chapterTop + chapter.offsetHeight;
+
+                if (scrollPosition >= chapterTop && scrollPosition < chapterBottom) {
+                    currentChapter = chapter;
+                }
+            });
+
+            if (currentChapter) {
+                const chapterId = currentChapter.id.split('-')[1];
+
+                // 移除所有活动的链接
+                tocLinks.forEach(l => l.classList.remove('active'));
+
+                // 高亮对应的目录链接
+                const correspondingLink = document.querySelector(`.toc-link[data-chapter="${chapterId}"]`);
+                if (correspondingLink) {
+                    correspondingLink.classList.add('active');
+                }
+            }
+        }
+
+        // 监听滚动事件
+        window.addEventListener('scroll', highlightCurrentChapter);
+
+        // 初始执行一次
+        highlightCurrentChapter();
+    });
+</script>
+</body>
+</html>
