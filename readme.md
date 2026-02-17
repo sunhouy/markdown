@@ -4,8 +4,8 @@
 项目采用JavaScript+PHP+Python架构，登录注册、文件上传、分享、历史版本使用PHP80，云打印服务端和客户端使用Python实现。
 ### 使用
 网页提供日间模式和夜间模式两种配色
-![日间模式](/demo/main_light.png)
-![夜间模式](/demo/main_dark.png)
+![日间模式](demo/main_light.png)
+![夜间模式](demo/main_dark.png)
 
 ### 部署
 - 前端代码直接运行，无需额外配置。前端代码均在js目录下，为方便，部分位置使用了硬链接，自行替换即可。
