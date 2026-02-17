@@ -2,26 +2,28 @@
 # -*- coding: utf-8 -*-
 """
 云打印客户端
-- 使用WebSocket与服务器建立连接
-- 8位数字密码认证
-- 支持选择系统打印机
-- 接收并处理打印请求
 """
 
 import asyncio
+import traceback
 import websockets
 import json
 import os
 import platform
 import configparser
 import subprocess
+import ssl
+import pdfkit
+import urllib.request
+import tempfile
+import os
+
 from datetime import datetime
 
 # 尝试导入pdfkit并配置
 pdfkit_available = False
 wkhtmltopdf_config = None
 try:
-    import pdfkit
     # 尝试设置wkhtmltopdf路径
     try:
         # 检查系统PATH中的wkhtmltopdf
@@ -34,7 +36,7 @@ try:
                 print(f"从系统PATH中找到wkhtmltopdf: {wkhtmltopdf_path}")
         except:
             pass
-        
+
         # 如果PATH中没有，检查常见的安装路径
         if not wkhtmltopdf_path:
             # 检查常见路径
@@ -43,25 +45,18 @@ try:
                 r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe',
                 r'C:\wkhtmltopdf\bin\wkhtmltopdf.exe',
             ]
-            
+
             for path in common_paths:
                 if os.path.exists(path):
                     wkhtmltopdf_path = path
                     break
-        
+
         if wkhtmltopdf_path:
             wkhtmltopdf_config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
             print(f"pdfkit库已成功导入，使用wkhtmltopdf路径: {wkhtmltopdf_path}")
             pdfkit_available = True
         else:
             print("警告: 未找到wkhtmltopdf可执行文件，将使用备用打印方法")
-            print("注意: 您安装的可能只是Python的wkhtmltopdf包，而不是实际的wkhtmltopdf命令行工具")
-            print("请从以下地址下载并安装wkhtmltopdf命令行工具:")
-            print("https://wkhtmltopdf.org/downloads.html")
-            print("安装后请确保将其添加到系统PATH中，或安装到以下常见路径之一:")
-            print("- C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
-            print("- C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe")
-            print("- C:\wkhtmltopdf\bin\wkhtmltopdf.exe")
     except Exception as e:
         print(f"配置pdfkit失败: {e}")
 except ImportError:
@@ -85,6 +80,8 @@ class PrintClient:
         self.printer_name = None
         self.config = configparser.ConfigParser()
         self.load_config()
+        # 用于存储当前监听任务的引用
+        self.listen_task = None
 
     def load_config(self):
         if os.path.exists(self.config_file):
@@ -158,6 +155,20 @@ class PrintClient:
             except ValueError:
                 print("错误: 请输入数字")
 
+    def modify_config(self):
+        """运行中修改配置的菜单"""
+        print("\n=== 配置修改菜单 ===")
+        print("1. 修改用户名和密码")
+        print("2. 修改默认打印机")
+        print("3. 返回")
+        choice = input("请选择 (1/2/3): ").strip()
+        if choice == '1':
+            self.set_user_credentials()
+        elif choice == '2':
+            self.select_printer()
+        else:
+            print("保持原有配置。")
+
     def print_content(self, content, settings):
         """打印内容"""
         if not self.printer_name:
@@ -171,7 +182,7 @@ class PrintClient:
             is_file_url = False
             if isinstance(content, str):
                 is_file_url = content.startswith('http') or content.startswith('https') or settings.get('print_file')
-            
+
             if is_file_url:
                 # 处理文件URL
                 print(f"处理文件URL: {content}")
@@ -193,16 +204,16 @@ class PrintClient:
         """Windows打印实现"""
         # 检查是否是HTML内容
         is_html = '<html>' in content.lower() or '<body>' in content.lower() or settings.get('content_type') == 'html'
-        
+
         # 临时文件路径
         temp_file = os.path.join(os.environ.get('TEMP', '/tmp'), f'print_{datetime.now().timestamp()}')
-        
+
         # 如果是HTML内容且pdfkit可用，转换为PDF
         if is_html and pdfkit_available:
             try:
                 # 保存HTML文件，确保添加字体支持
                 html_file = temp_file + '.html'
-                
+
                 # 检查HTML是否已经有DOCTYPE和head部分
                 if '<!DOCTYPE html>' not in content.lower() or '<head>' not in content.lower():
                     # 如果没有，添加基本的HTML结构和字体支持
@@ -269,14 +280,14 @@ class PrintClient:
                     # 确保有charset meta标签
                     if 'charset' not in html_content.lower():
                         html_content = html_content.replace('<head>', '<head><meta charset="UTF-8">')
-                
+
                 with open(html_file, 'w', encoding='utf-8') as f:
                     f.write(html_content)
-                
+
                 # 转换为PDF，添加选项确保中文支持
                 pdf_file = temp_file + '.pdf'
                 print(f"正在使用pdfkit将HTML转换为PDF: {pdf_file}")
-                
+
                 # 添加选项以支持中文并避免网络错误
                 options = {
                     'encoding': 'UTF-8',
@@ -289,13 +300,12 @@ class PrintClient:
                     'disable-external-links': None,
                     'disable-javascript': None,
                     'load-error-handling': 'ignore',
-                    'load-media-error-handling': 'ignore',
-                    'timeout': 10000
+                    'load-media-error-handling': 'ignore'
                 }
-                
+
                 # 使用配置的pdfkit
                 pdfkit.from_file(html_file, pdf_file, configuration=wkhtmltopdf_config, options=options)
-                
+
                 # 打印PDF文件
                 print(f"正在打印PDF文件: {pdf_file}")
                 os.startfile(pdf_file, "print")
@@ -303,13 +313,13 @@ class PrintClient:
             except Exception as e:
                 print(f"pdfkit转换失败: {e}")
                 # 转换失败，继续使用备用方法
-        
+
         # 备用方法：直接处理文件
         extension = '.html' if is_html else '.txt'
         temp_file = temp_file + extension
         with open(temp_file, 'w', encoding='utf-8') as f:
             f.write(content)
-        
+
         try:
             # 尝试使用os.startfile
             os.startfile(temp_file, "print")
@@ -334,33 +344,31 @@ class PrintClient:
 
     def _print_file_url(self, file_url, settings):
         """打印文件URL"""
-        import urllib.request
-        import tempfile
-        import os
-        
+
+
         print(f"正在下载文件: {file_url}")
-        
+
         # 获取文件扩展名
         file_extension = ''
         if '.' in file_url:
             file_extension = os.path.splitext(file_url)[1]
-        
+
         # 创建临时文件
         with tempfile.NamedTemporaryFile(suffix=file_extension, delete=False) as tmp:
             temp_file_path = tmp.name
-        
+
         try:
             # 下载文件
             print(f"开始下载文件: {file_url} 到 {temp_file_path}")
             urllib.request.urlretrieve(file_url, temp_file_path)
             print(f"文件已下载到: {temp_file_path}")
-            
+
             # 检查文件是否下载成功
             if not os.path.exists(temp_file_path) or os.path.getsize(temp_file_path) == 0:
                 raise Exception(f"文件下载失败，文件不存在或为空: {temp_file_path}")
-            
+
             print(f"下载的文件大小: {os.path.getsize(temp_file_path)} 字节")
-            
+
             # 根据系统平台打印文件
             if platform.system() == 'Windows':
                 # 在Windows上使用默认应用程序打印
@@ -374,35 +382,34 @@ class PrintClient:
                 # 在Linux上使用lpr命令打印
                 print(f"在Linux上打印文件: {temp_file_path} 到打印机: {self.printer_name}")
                 subprocess.run(['lpr', '-P', self.printer_name, temp_file_path], check=True)
-            
+
             print(f"文件打印成功: {temp_file_path}")
         except Exception as e:
             print(f"打印文件URL时出错: {str(e)}")
             # 重新抛出异常，让调用者知道下载失败
             raise
         finally:
-            # 清理临时文件（可选，注释掉以保留文件用于调试）
-            # try:
-            #     os.unlink(temp_file_path)
-            #     print(f"临时文件已清理: {temp_file_path}")
-            # except:
-            #     pass
-            pass
+            # 清理临时文件
+            try:
+                os.unlink(temp_file_path)
+                print(f"临时文件已清理: {temp_file_path}")
+            except:
+               pass
 
     def _print_unix(self, content, settings):
         """Unix-like系统打印实现"""
         # 检查是否是HTML内容
         is_html = '<html>' in content.lower() or '<body>' in content.lower() or settings.get('content_type') == 'html'
-        
+
         # 临时文件路径
         temp_file = os.path.join('/tmp', f'print_{datetime.now().timestamp()}')
-        
+
         # 如果是HTML内容且pdfkit可用，转换为PDF
         if is_html and pdfkit_available:
             try:
                 # 保存HTML文件，确保添加字体支持
                 html_file = temp_file + '.html'
-                
+
                 # 检查HTML是否已经有DOCTYPE和head部分
                 if '<!DOCTYPE html>' not in content.lower() or '<head>' not in content.lower():
                     # 如果没有，添加基本的HTML结构和字体支持
@@ -469,14 +476,14 @@ class PrintClient:
                     # 确保有charset meta标签
                     if 'charset' not in html_content.lower():
                         html_content = html_content.replace('<head>', '<head><meta charset="UTF-8">')
-                
+
                 with open(html_file, 'w', encoding='utf-8') as f:
                     f.write(html_content)
-                
+
                 # 转换为PDF，添加选项确保中文支持
                 pdf_file = temp_file + '.pdf'
                 print(f"正在使用pdfkit将HTML转换为PDF: {pdf_file}")
-                
+
                 # 添加选项以支持中文并避免网络错误
                 options = {
                     'encoding': 'UTF-8',
@@ -492,10 +499,10 @@ class PrintClient:
                     'load-media-error-handling': 'ignore',
                     'timeout': 10000
                 }
-                
+
                 # 使用配置的pdfkit
                 pdfkit.from_file(html_file, pdf_file, configuration=wkhtmltopdf_config, options=options)
-                
+
                 # 打印PDF文件
                 print(f"正在打印PDF文件: {pdf_file}")
                 subprocess.run(['lpr', '-P', self.printer_name, pdf_file], check=True)
@@ -503,7 +510,7 @@ class PrintClient:
             except Exception as e:
                 print(f"pdfkit转换失败: {e}")
                 # 转换失败，继续使用备用方法
-        
+
         # 备用方法：直接处理文件
         extension = '.html' if is_html else '.txt'
         temp_file = temp_file + extension
@@ -551,7 +558,6 @@ class PrintClient:
         server_url = "wss://print.yhsun.cn"
         print(f"连接到打印服务器: {server_url}")
         try:
-            import ssl
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
@@ -587,49 +593,100 @@ class PrintClient:
             print("连接超时")
             return False
         except Exception as e:
-            import traceback
             print(f"连接服务器时出错: {str(e)}")
             print(traceback.format_exc())
             return False
 
+    async def input_listener(self):
+        """监听用户输入，允许在运行中修改配置或退出"""
+        loop = asyncio.get_event_loop()
+        while True:
+            # 确保监听任务存在且正在运行
+            if self.listen_task is None or self.listen_task.done():
+                # 如果任务已结束，重新创建
+                self.listen_task = asyncio.create_task(self.connect_and_listen())
+
+            # 创建输入监听future
+            input_future = loop.run_in_executor(None, input, "\n按回车键修改配置，或输入 quit 退出: ")
+
+            # 同时等待输入和监听任务完成
+            done, pending = await asyncio.wait(
+                [input_future, self.listen_task],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+
+            # 如果监听任务先完成（例如断开连接）
+            if self.listen_task in done:
+                input_future.cancel()
+                # 获取任务结果（可能为False或异常）
+                try:
+                    result = self.listen_task.result()
+                    if result is False:
+                        print("连接失败，将尝试重新连接...")
+                except asyncio.CancelledError:
+                    # 可能被用户取消，忽略
+                    pass
+                except Exception as e:
+                    print(f"监听任务异常: {e}")
+                # 继续循环，重新创建连接任务
+                continue
+
+            # 如果用户输入先完成
+            if input_future in done:
+                user_input = input_future.result()
+                if user_input.lower() == 'quit':
+                    print("正在退出程序...")
+                    self.listen_task.cancel()
+                    try:
+                        await self.listen_task
+                    except asyncio.CancelledError:
+                        pass
+                    break
+                elif user_input == "":
+                    # 用户按下回车，进入配置修改模式
+                    print("\n进入配置修改模式...")
+                    # 取消当前连接任务
+                    self.listen_task.cancel()
+                    try:
+                        await self.listen_task
+                    except asyncio.CancelledError:
+                        pass
+                    # 修改配置
+                    self.modify_config()
+                    print("配置已更新，将重新连接服务器。")
+                    # 继续循环，自动重新创建连接任务
+                else:
+                    print(f"未知命令: {user_input}")
+                    # 继续循环
+
     async def start(self):
-        """启动客户端主流程"""
-        if not self.username or not self.password:
-            self.set_user_credentials()
-        if not self.printer_name:
-            self.select_printer()
+        """启动客户端，进入输入监听循环"""
         print(f"启动打印客户端...")
         print(f"认证用户: {self.username}")
         print(f"默认打印机: {self.printer_name}")
         print("按 Ctrl+C 停止服务")
-        success = await self.connect_and_listen()
-        if not success:
-            print("无法连接到打印服务器，请检查网络")
+        print("在运行过程中，按回车键可修改配置，输入 quit 退出")
+        try:
+            await self.input_listener()
+        except asyncio.CancelledError:
+            # 处理Ctrl+C等取消
+            if self.listen_task and not self.listen_task.done():
+                self.listen_task.cancel()
+                await self.listen_task
+            raise
 
 
 async def main():
     client = PrintClient()
     print("=== 云打印客户端 ===")
-    print("正在初始化...")
 
-    if client.username and client.password:
-        print(f"发现已保存的用户凭证: {client.username}")
-        use_saved = input("是否使用已保存的用户凭证？(y/n): ").strip().lower()
-        if use_saved != 'y':
-            client.set_user_credentials()
-    else:
-        print("未发现已保存的用户凭证")
+    # 如果缺少凭证或打印机，则必须设置
+    if not client.username or not client.password:
         client.set_user_credentials()
-
     if not client.printer_name:
-        print("未发现已选择的打印机")
         client.select_printer()
-    else:
-        print(f"已保存的打印机: {client.printer_name}")
-        change_printer = input("是否重新选择打印机？(y/n): ").strip().lower()
-        if change_printer == 'y':
-            client.select_printer()
 
+    # 启动客户端主循环
     await client.start()
 
 
@@ -640,5 +697,4 @@ if __name__ == "__main__":
         print("\n程序已终止")
     except Exception as e:
         print(f"程序运行出错: {str(e)}")
-        import traceback
         traceback.print_exc()
