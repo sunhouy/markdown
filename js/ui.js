@@ -661,6 +661,11 @@
                     <i class="fas fa-magic"></i> AI智能排版
                 </button>
             </div>
+            <div style="margin-bottom:20px;">
+                <button id="printFileBtn" style="width:100%;padding:12px;font-weight:bold;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer;">
+                    <i class="fas fa-file-upload"></i> 上传文件打印
+                </button>
+            </div>
         `;
 
         // 客户端连接状态区域
@@ -766,7 +771,6 @@
 
         var actionButtons = `
             <div style="display:flex;gap:10px;margin-top:20px;">
-                <button id="printFileBtn" style="flex:1;padding:12px;font-weight:bold;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer;">上传文件打印</button>
                 <button id="printPreviewBtn" style="flex:1;padding:12px;font-weight:bold;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer;">预览</button>
                 <button id="printSendBtn" style="flex:1;padding:12px;font-weight:bold;background:#2196F3;color:white;border:none;border-radius:6px;cursor:pointer;">发送打印</button>
                 <button id="printCancelBtn" style="flex:1;padding:12px;background:` + (nightMode ? '#555' : '#9E9E9E') + `;color:white;border:none;border-radius:6px;cursor:pointer;">取消</button>
@@ -897,12 +901,291 @@
         if (printFileBtn) {
             // 移除水波纹效果
             printFileBtn.onclick = debounce(function() {
-                cleanup();
-                // 关闭当前模态框
-                printModal.remove();
-                // 打开独立的文件上传打印窗口
-                showFilePrintDialog();
+                // 创建文件输入元素
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.png,.jpg,.jpeg';
+                input.onchange = async function(e) {
+                    var files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                        cleanup();
+                        printModal.remove();
+                        // 直接处理选择的文件
+                        await handleSelectedFiles(files);
+                    }
+                };
+                input.click();
             }, 500);
+        }
+
+        // 处理选择的文件
+        async function handleSelectedFiles(files) {
+            if (!g('currentUser')) {
+                global.showMessage('请先登录后再使用文件打印功能');
+                if (g('showLoginModal')) {
+                    g('showLoginModal')();
+                }
+                return;
+            }
+
+            // 检查打印客户端连接状态
+            var isConnected = await checkPrintClientConnection();
+            if (!isConnected) {
+                // 连接失败，显示连接提示
+                showConnectionErrorDialog(files);
+                return;
+            }
+
+            try {
+                global.showMessage('正在处理上传的文件...');
+
+                // 上传文件到服务器
+                var formData = new FormData();
+                files.forEach(function(file) {
+                    formData.append('files[]', file);
+                });
+
+                // 发送文件到打印服务器
+                var response = await fetch('api/upload.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                var result = await response.json();
+                if (result.success) {
+                    // 调用打印函数发送文件URL到打印服务器
+                    for (var i = 0; i < result.urls.length; i++) {
+                        await sendFileToPrint(result.urls[i], files[i].name);
+                    }
+                    global.showMessage('文件打印任务已发送');
+                } else {
+                    global.showMessage('文件上传失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('文件打印失败:', error);
+                global.showMessage('文件打印失败: ' + error.message, 'error');
+            }
+        }
+
+        // 检查打印客户端连接状态
+        function checkPrintClientConnection() {
+            return new Promise(function(resolve) {
+                var wsUrl = 'wss://print.yhsun.cn';
+                var ws = new WebSocket(wsUrl);
+                var timeout = setTimeout(function() {
+                    resolve(false);
+                    if (ws) ws.close();
+                }, 5000);
+
+                ws.onopen = function() {
+                    clearTimeout(timeout);
+                    // 发送状态检查请求
+                    ws.send(JSON.stringify({
+                        type: 'check_client_status',
+                        username: g('currentUser').username,
+                        password: g('currentUser').password
+                    }));
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        var response = JSON.parse(event.data);
+                        if (response.type === 'client_status') {
+                            resolve(response.connected);
+                        } else {
+                            resolve(false);
+                        }
+                    } catch (e) {
+                        resolve(false);
+                    } finally {
+                        clearTimeout(timeout);
+                        if (ws) ws.close();
+                    }
+                };
+
+                ws.onerror = function() {
+                    clearTimeout(timeout);
+                    resolve(false);
+                    if (ws) ws.close();
+                };
+
+                ws.onclose = function() {
+                    clearTimeout(timeout);
+                    resolve(false);
+                };
+            });
+        }
+
+        // 显示连接错误对话框
+        function showConnectionErrorDialog(files) {
+            var nightMode = g('nightMode') === true;
+            var bg = nightMode ? '#2d2d2d' : 'white';
+            var textColor = nightMode ? '#eee' : '#333';
+
+            var connectionModal = document.createElement('div');
+            connectionModal.className = 'modal-overlay';
+            connectionModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10001;';
+
+            var modalContent = document.createElement('div');
+            modalContent.style.cssText = 'background:' + bg + ';color:' + textColor + ';border-radius:12px;padding:25px;width:90%;max-width:500px;';
+
+            modalContent.innerHTML = `
+                <h2 style="text-align:center;margin-top:0;margin-bottom:20px;">打印客户端连接</h2>
+                <div style="text-align:center;margin-bottom:20px;">
+                    <i class="fas fa-exclamation-circle" style="font-size:48px;color:#ff9800;margin-bottom:15px;"></i>
+                    <p style="font-size:16px;">无法连接到打印客户端</p>
+                    <p style="font-size:14px;color:${nightMode ? '#aaa' : '#666'};margin-top:10px;">请确保打印客户端已启动并使用您的账号密码绑定</p>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                    <button id="retryConnectionBtn" style="flex:1;padding:12px;font-weight:bold;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer;">重新连接</button>
+                    <button id="cancelConnectionBtn" style="flex:1;padding:12px;background:${nightMode ? '#555' : '#9E9E9E'};color:white;border:none;border-radius:6px;cursor:pointer;">取消</button>
+                </div>
+                <p style="text-align:center;margin-top:15px;font-size:14px;color:${nightMode ? '#aaa' : '#666'};">
+                    <a href="print_client.exe" target="_blank" style="color:#4a90e2;">点击下载打印客户端</a>
+                </p>
+            `;
+
+            connectionModal.appendChild(modalContent);
+            document.body.appendChild(connectionModal);
+
+            // 重新连接按钮事件
+            var retryBtn = modalContent.querySelector('#retryConnectionBtn');
+            if (retryBtn) {
+                retryBtn.onclick = async function() {
+                    retryBtn.disabled = true;
+                    retryBtn.textContent = '连接中...';
+
+                    var isConnected = await checkPrintClientConnection();
+                    if (isConnected) {
+                        // 连接成功，关闭连接对话框并继续处理文件
+                        connectionModal.remove();
+                        await handleFilesAfterConnection(files);
+                    } else {
+                        // 连接失败，继续显示对话框
+                        global.showMessage('连接失败，请确保打印客户端已启动并使用正确的账号密码登录', 'error');
+                        retryBtn.disabled = false;
+                        retryBtn.textContent = '重新连接';
+                    }
+                };
+            }
+
+            // 取消按钮事件
+            var cancelBtn = modalContent.querySelector('#cancelConnectionBtn');
+            if (cancelBtn) {
+                cancelBtn.onclick = function() {
+                    connectionModal.remove();
+                };
+            }
+
+            // 点击外部关闭
+            connectionModal.addEventListener('click', function(e) {
+                if (e.target === connectionModal) {
+                    connectionModal.remove();
+                }
+            });
+        }
+
+        // 连接成功后处理文件
+        async function handleFilesAfterConnection(files) {
+            try {
+                global.showMessage('正在处理上传的文件...');
+
+                // 上传文件到服务器
+                var formData = new FormData();
+                files.forEach(function(file) {
+                    formData.append('files[]', file);
+                });
+
+                // 发送文件到打印服务器
+                var response = await fetch('api/upload.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                var result = await response.json();
+                if (result.success) {
+                    // 调用打印函数发送文件URL到打印服务器
+                    for (var i = 0; i < result.urls.length; i++) {
+                        await sendFileToPrint(result.urls[i], files[i].name);
+                    }
+                    global.showMessage('文件打印任务已发送');
+                } else {
+                    global.showMessage('文件上传失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('文件打印失败:', error);
+                global.showMessage('文件打印失败: ' + error.message, 'error');
+            }
+        }
+
+        // 发送文件到打印服务器
+        async function sendFileToPrint(fileUrl, fileName) {
+            var username = g('currentUser').username;
+            var userPassword = g('currentUser').password;
+
+            return new Promise(function(resolve, reject) {
+                var wsUrl = 'wss://print.yhsun.cn';
+                var ws = new WebSocket(wsUrl);
+                var timeout = setTimeout(function() {
+                    reject(new Error('连接超时'));
+                }, 5000);
+
+                ws.onopen = function() {
+                    clearTimeout(timeout);
+
+                    // 确保fileUrl是完整的URL
+                    var fullFileUrl = fileUrl;
+                    if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+                        // 构建完整的URL
+                        var baseUrl = window.location.origin;
+                        if (!fileUrl.startsWith('/')) {
+                            baseUrl += '/' + window.location.pathname.split('/').slice(0, -1).join('/') + '/';
+                        }
+                        fullFileUrl = baseUrl + fileUrl;
+                    }
+
+                    var printData = {
+                        type: 'print_request',
+                        username: username,
+                        password: userPassword,
+                        content: fullFileUrl,
+                        content_type: 'file',
+                        file_name: fileName,
+                        settings: {
+                            print_file: true
+                        },
+                        timestamp: new Date().toISOString()
+                    };
+
+                    ws.send(JSON.stringify(printData));
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        var response = JSON.parse(event.data);
+                        if (response.type === 'print_queued') {
+                            resolve();
+                        } else if (response.type === 'error') {
+                            reject(new Error(response.message || '打印失败'));
+                        }
+                    } catch (e) {
+                        reject(e);
+                    } finally {
+                        ws.close();
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    clearTimeout(timeout);
+                    reject(error);
+                    ws.close();
+                };
+
+                ws.onclose = function() {
+                    clearTimeout(timeout);
+                };
+            });
         }
 
         // 打印模态框点击外部关闭时也需要清除定时器
@@ -1708,12 +1991,12 @@
         h1, h2, h3, h4, h5, h6 {
             text-align: ${titleAlignment};
             font-weight: bold;
-            margin-top: ${titleSpacing}em;
-            margin-bottom: ${titleSpacing}em;
+            margin-top: ${titleSpacing};
+            margin-bottom: ${titleSpacing};
             line-height: ${lineHeight};
         }
-        h1 { font-size: ${titleFontSize * 1.5}pt; }
-        h2 { font-size: ${titleFontSize * 1.3}pt; }
+        h1 { font-size: ${titleFontSize * 1.5}; }
+        h2 { font-size: ${titleFontSize * 1.3}; }
         h3 { font-size: ${titleFontSize * 1.1}pt; }
         h4 { font-size: ${titleFontSize}pt; }
         h5 { font-size: ${titleFontSize * 0.9}pt; }
@@ -2444,7 +2727,7 @@
                     <div id="statusIndicator" style="width:12px;height:12px;border-radius:50%;background:#dc3545;"></div>
                     <span id="statusText" style="font-size:14px;">请连接打印客户端</span>
                 </div>
-                <p style="margin-top:10px;font-size:14px;color:` + (nightMode ? '#aaa' : '#666') + `;">测试测试测试测试</p>
+                <p style="margin-top:10px;font-size:14px;color:` + (nightMode ? '#aaa' : '#666') + `;"><a href="print_client.exe" target="_blank" style="color:#4a90e2;">点击下载打印客户端</a></p>
             </div>
         `;
 
@@ -3006,12 +3289,12 @@
         h1, h2, h3, h4, h5, h6 {
             text-align: ${titleAlignment};
             font-weight: bold;
-            margin-top: ${titleSpacing}em;
-            margin-bottom: ${titleSpacing}em;
+            margin-top: ${titleSpacing};
+            margin-bottom: ${titleSpacing};
             line-height: ${lineHeight};
         }
-        h1 { font-size: ${titleFontSize * 1.5}pt; }
-        h2 { font-size: ${titleFontSize * 1.3}pt; }
+        h1 { font-size: ${titleFontSize * 1.5}; }
+        h2 { font-size: ${titleFontSize * 1.3}; }
         h3 { font-size: ${titleFontSize * 1.1}pt; }
         h4 { font-size: ${titleFontSize}pt; }
         h5 { font-size: ${titleFontSize * 0.9}pt; }
@@ -3031,7 +3314,7 @@
             font-family: monospace;
             font-size: ${bodyFontSize * 0.9}pt;
             overflow-x: auto;
-            margin: ${titleSpacing}em 0;
+            margin: ${titleSpacing};
             text-align: left;
         }
         img {
