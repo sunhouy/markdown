@@ -82,10 +82,10 @@
             
             if (conflict.type === 'delete') {
                 // 删除文件冲突
-                conflictItem.innerHTML = '<div><strong style="color: #dc3545;">⚠️ ' + conflict.filename + '</strong><div class="conflict-details"><div style="color: #dc3545;">该文件在服务器上已经删除</div><div>本地修改时间: ' + new Date(conflict.localModified).toLocaleString() + '</div></div><div style="margin-top: 8px;"><label style="margin-right: 15px;"><input type="radio" name="conflict-' + index + '" value="upload" checked>重新上传到服务器</label><label><input type="radio" name="conflict-' + index + '" value="delete">删除本地文件</label></div></div>';
+                conflictItem.innerHTML = '<div><strong style="color: #dc3545;">⚠️ ' + conflict.filename + '</strong><div class="conflict-details"><div style="color: #dc3545;">该文件在服务器上已经删除</div><div>本地修改时间: ' + new Date(conflict.localModified).toLocaleString() + '</div></div><div style="margin-top: 8px;"><label style="margin-right: 15px;"><input type="radio" name="conflict-' + index + '" value="upload">重新上传到服务器</label><label><input type="radio" name="conflict-' + index + '" value="delete" checked>删除本地文件</label></div></div>';
             } else {
                 // 内容冲突
-                conflictItem.innerHTML = '<div><strong>' + conflict.filename + '</strong><div class="conflict-details"><div>本地修改时间: ' + new Date(conflict.localModified).toLocaleString() + '</div><div>服务器修改时间: ' + new Date(conflict.serverModified).toLocaleString() + '</div></div><div style="margin-top: 8px;"><label style="margin-right: 15px;"><input type="radio" name="conflict-' + index + '" value="local" checked>使用本地版本</label><label><input type="radio" name="conflict-' + index + '" value="server">使用服务器版本</label></div></div>';
+                conflictItem.innerHTML = '<div><strong>' + conflict.filename + '</strong><div class="conflict-details"><div>本地修改时间: ' + new Date(conflict.localModified).toLocaleString() + '</div><div>服务器修改时间: ' + new Date(conflict.serverModified).toLocaleString() + '</div></div><div style="margin-top: 8px;"><label style="margin-right: 15px;"><input type="radio" name="conflict-' + index + '" value="local">使用本地版本</label><label><input type="radio" name="conflict-' + index + '" value="server" checked>使用服务器版本</label></div></div>';
             }
             
             conflictList.appendChild(conflictItem);
