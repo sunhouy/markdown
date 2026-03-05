@@ -572,11 +572,11 @@ body.night-mode .user-info {
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    width: 250px;
+    width: 300px;
     max-height: calc(100vh - 100px);
     overflow-y: auto;
     display: none;
-    padding: 15px;
+    padding: 8px;
 }
 
 body.night-mode .file-list-sidebar {
@@ -604,6 +604,7 @@ body.night-mode .file-list-header {
 
 .file-list-title {
     font-size: 16px;
+    margin-left: 15px;
     font-weight: 600;
     color: #333;
 }
@@ -641,8 +642,9 @@ body.night-mode .file-list-close:hover {
     cursor: pointer;
     transition: background 0.2s ease;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .file-item:hover {
@@ -664,16 +666,20 @@ body.night-mode .file-item.active {
 }
 
 .file-name {
-    flex: 1;
+    flex: 1 1 auto;          /* 允许增长和收缩 */
+    min-width: 0;            /* 允许内容收缩到比最小内容更小 */
     font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-right: 8px;       /* 与按钮保持适当间距 */
 }
+
 
 .file-actions {
     display: flex;
-    gap: 5px;
+    gap: 2px;                /* 按钮间距缩小 */
+    flex-shrink: 0;          /* 禁止按钮被压缩 */
 }
 
 .file-action-btn {
@@ -681,9 +687,13 @@ body.night-mode .file-item.active {
     border: none;
     color: #999;
     cursor: pointer;
-    font-size: 12px;
-    padding: 2px 5px;
+    font-size: 12px;         /* 可保持原大小或稍小 */
+    padding: 2px 4px;        /* 水平内边距减小 */
     border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .file-action-btn:hover {

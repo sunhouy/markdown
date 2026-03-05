@@ -1,11 +1,101 @@
 /**
- * 文件管理 - 加载、保存、同步、冲突、历史版本
+ * 文件管理 - 加载、保存、同步、冲突、历史版本、文件夹
  */
 (function(global) {
     'use strict';
 
     function g(name) { return global[name]; }
 
+    // ---------- 辅助函数：路径处理 ----------
+    function normalizePath(input) {
+        let path = input.trim();
+        if (path.startsWith('/')) {
+            path = path.substring(1);
+        }
+        if (path.endsWith('.md') || path.endsWith('.txt')) {
+            path = path.substring(0, path.length - 3);
+        }
+        return path;
+    }
+
+    function getParentPath(path) {
+        if (!path) return '';
+        const lastSlash = path.lastIndexOf('/');
+        if (lastSlash === -1) return '';
+        return path.substring(0, lastSlash);
+    }
+
+    function getBasename(path) {
+        if (!path) return '';
+        const lastSlash = path.lastIndexOf('/');
+        if (lastSlash === -1) return path;
+        return path.substring(lastSlash + 1);
+    }
+
+    function ensureParentFolders(path) {
+        if (!path) return;
+        const files = g('files');
+        const parent = getParentPath(path);
+        if (parent === '') return;
+        const exists = files.some(f => f.name === parent && f.type === 'folder');
+        if (!exists) {
+            ensureParentFolders(parent);
+            const folder = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                name: parent,
+                type: 'folder',
+                content: '',
+                lastModified: Date.now(),
+                isSynced: false
+            };
+            files.push(folder);
+        }
+    }
+
+    function deleteFolderAndChildren(folderPath) {
+        const files = g('files');
+        const toDelete = files.filter(f => f.name === folderPath || f.name.startsWith(folderPath + '/'));
+        toDelete.forEach(f => {
+            const idx = files.findIndex(ff => ff.id === f.id);
+            if (idx !== -1) files.splice(idx, 1);
+            delete g('lastSyncedContent')[f.id];
+            delete g('unsavedChanges')[f.id];
+        });
+    }
+
+    function renameFolderAndChildren(oldPath, newPath) {
+        const files = g('files');
+        files.forEach(f => {
+            if (f.name === oldPath) {
+                f.name = newPath;
+            } else if (f.name.startsWith(oldPath + '/')) {
+                f.name = newPath + f.name.substring(oldPath.length);
+            }
+        });
+    }
+
+    function isNameExistsInParent(name, parentPath, excludeId) {
+        const fullPath = parentPath ? parentPath + '/' + name : name;
+        return g('files').some(f => f.name === fullPath && f.id !== excludeId);
+    }
+
+    // 【新增】获取所有可用目标文件夹（包含虚拟中间文件夹）
+    function getAllFolderPaths() {
+        const folderSet = new Set(['']); // 根目录
+        const files = g('files');
+        files.forEach(f => {
+            let path = f.name;
+            while (path) {
+                folderSet.add(path);
+                const parent = getParentPath(path);
+                if (!parent || parent === path) break;
+                path = parent;
+            }
+        });
+        return Array.from(folderSet).sort((a, b) => a.localeCompare(b));
+    }
+
+    // ---------- 服务器同步相关 ----------
     async function loadFilesFromServer() {
         if (!g('currentUser')) return;
         try {
@@ -14,15 +104,21 @@
             const response = await fetch(api + '?action=getfiles&username=' + encodeURIComponent(g('currentUser').username));
             const result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             if (result.code === 200 && result.data && result.data.files) {
-                const serverFiles = result.data.files;
+                // 对服务器返回的文件名进行标准化（去除开头的 /）
+                let serverFiles = result.data.files.map(f => ({
+                    ...f,
+                    name: f.name.startsWith('/') ? f.name.substring(1) : f.name
+                }));
                 const localFiles = JSON.parse(localStorage.getItem('vditor_files') || '[]');
+                // 迁移：给本地文件增加type字段，默认为file
+                localFiles.forEach(f => { if (!f.type) f.type = 'file'; });
                 const conflicts = detectConflicts(localFiles, serverFiles);
                 if (conflicts.length > 0) {
                     showConflictResolution(conflicts, serverFiles);
                 } else {
                     mergeFiles(localFiles, serverFiles);
                     loadFiles();
-                    if (g('files').length > 0) openFile(g('files')[0].id);
+                    if (g('files').length > 0) openFirstFile();
                     else createDefaultFile();
                     global.showSyncStatus('文件同步完成', 'success');
                 }
@@ -41,12 +137,10 @@
         const conflicts = [];
         const serverFileMap = {};
         serverFiles.forEach(function(f) { serverFileMap[f.name] = f; });
-        
-        // 检查本地有但服务器没有的文件
+
         localFiles.forEach(function(localFile) {
             const serverFile = serverFileMap[localFile.name];
             if (serverFile) {
-                // 内容冲突
                 if (serverFile.content !== localFile.content) {
                     conflicts.push({
                         type: 'content',
@@ -58,7 +152,6 @@
                     });
                 }
             } else {
-                // 服务器没有这个文件，可能被删除了
                 conflicts.push({
                     type: 'delete',
                     filename: localFile.name,
@@ -67,7 +160,6 @@
                 });
             }
         });
-        
         return conflicts;
     }
 
@@ -79,15 +171,12 @@
         conflicts.forEach(function(conflict, index) {
             const conflictItem = document.createElement('div');
             conflictItem.className = 'conflict-option';
-            
+
             if (conflict.type === 'delete') {
-                // 删除文件冲突
                 conflictItem.innerHTML = '<div><strong style="color: #dc3545;">⚠️ ' + conflict.filename + '</strong><div class="conflict-details"><div style="color: #dc3545;">该文件在服务器上已经删除</div><div>本地修改时间: ' + new Date(conflict.localModified).toLocaleString() + '</div></div><div style="margin-top: 8px;"><label style="margin-right: 15px;"><input type="radio" name="conflict-' + index + '" value="upload">重新上传到服务器</label><label><input type="radio" name="conflict-' + index + '" value="delete" checked>删除本地文件</label></div></div>';
             } else {
-                // 内容冲突
                 conflictItem.innerHTML = '<div><strong>' + conflict.filename + '</strong><div class="conflict-details"><div>本地修改时间: ' + new Date(conflict.localModified).toLocaleString() + '</div><div>服务器修改时间: ' + new Date(conflict.serverModified).toLocaleString() + '</div></div><div style="margin-top: 8px;"><label style="margin-right: 15px;"><input type="radio" name="conflict-' + index + '" value="local">使用本地版本</label><label><input type="radio" name="conflict-' + index + '" value="server" checked>使用服务器版本</label></div></div>';
             }
-            
             conflictList.appendChild(conflictItem);
         });
         conflictModal.classList.add('show');
@@ -102,23 +191,20 @@
         const vditor = g('vditor');
         const currentFileId = g('currentFileId');
         const filesToDelete = [];
-        
+
         conflicts.forEach(function(conflict, index) {
             const selection = document.querySelector('input[name="conflict-' + index + '"]:checked');
             if (!selection) return;
-            
+
             if (conflict.type === 'delete') {
-                // 处理删除冲突
                 const action = selection.value;
                 if (action === 'delete') {
-                    // 删除本地文件
                     const localFileIndex = localFiles.findIndex(function(f) { return f.name === conflict.filename; });
                     if (localFileIndex !== -1) {
                         filesToDelete.push(localFiles[localFileIndex].id);
                         localFiles.splice(localFileIndex, 1);
                     }
                 } else {
-                    // 重新上传到服务器 - 添加到serverFiles
                     const localFile = localFiles.find(function(f) { return f.name === conflict.filename; });
                     if (localFile) {
                         serverFiles.push({
@@ -129,7 +215,6 @@
                     }
                 }
             } else {
-                // 处理内容冲突
                 const useLocal = selection.value === 'local';
                 if (useLocal) {
                     const serverFileIndex = serverFiles.findIndex(function(f) { return f.name === conflict.filename; });
@@ -144,17 +229,16 @@
                 }
             }
         });
-        
+
         mergeFiles(localFiles, serverFiles);
-        
-        // 删除需要删除的文件的同步状态
+
         filesToDelete.forEach(function(fileId) {
             delete g('lastSyncedContent')[fileId];
             delete g('unsavedChanges')[fileId];
         });
-        
+
         loadFiles();
-        if (g('files').length > 0) openFile(g('files')[0].id);
+        if (g('files').length > 0) openFirstFile();
         global.showMessage('冲突已解决，文件已同步');
         global.showSyncStatus('文件同步完成', 'success');
     }
@@ -163,7 +247,14 @@
         const mergedFiles = [];
         const fileMap = {};
         serverFiles.forEach(function(serverFile) {
-            const file = { id: Date.now().toString() + Math.random().toString(36).substr(2, 9), name: serverFile.name, content: serverFile.content, lastModified: serverFile.lastModified || Date.now(), isSynced: true };
+            const file = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                name: serverFile.name,
+                type: serverFile.type || 'file',
+                content: serverFile.content,
+                lastModified: serverFile.lastModified || Date.now(),
+                isSynced: true
+            };
             mergedFiles.push(file);
             fileMap[serverFile.name] = file;
         });
@@ -182,11 +273,113 @@
 
     function loadLocalFiles() {
         const localFiles = JSON.parse(localStorage.getItem('vditor_files') || '[]');
+        localFiles.forEach(f => { if (!f.type) f.type = 'file'; });
         if (localFiles.length === 0) createDefaultFile();
         else {
             global.files = localFiles;
             loadFiles();
-            if (g('files').length > 0) openFile(g('files')[0].id);
+            if (g('files').length > 0) openFirstFile();
+        }
+    }
+
+    // 打开第一个文件（忽略文件夹）
+    function openFirstFile() {
+        const firstFile = g('files').find(f => f.type === 'file');
+        if (firstFile) openFile(firstFile.id);
+    }
+
+    // ---------- 树形渲染及交互 ----------
+    function buildTree(files) {
+        // 创建路径到条目的映射
+        const pathMap = {};
+        files.forEach(f => { pathMap[f.name] = f; });
+
+        // 根节点
+        const root = { name: '', basename: '/', children: [], type: 'folder', id: null };
+        const map = { '': root };
+
+        // 按路径长度排序，确保父路径先处理
+        const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name));
+        sorted.forEach(f => {
+            const parts = f.name.split('/').filter(p => p);
+            let currentPath = '';
+            let parent = root;
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                const isLast = i === parts.length - 1;
+                const fullPath = currentPath ? currentPath + '/' + part : part;
+
+                if (!map[fullPath]) {
+                    // 查找该路径是否有对应的条目
+                    const entry = pathMap[fullPath];
+                    const node = {
+                        name: fullPath,
+                        basename: part,
+                        type: entry ? entry.type : (isLast ? f.type : 'folder'),
+                        id: entry ? entry.id : null,
+                        children: []
+                    };
+                    map[fullPath] = node;
+                    parent.children.push(node);
+                }
+                parent = map[fullPath];
+                currentPath = fullPath;
+            }
+        });
+        return root.children;
+    }
+
+    function renderTree(nodes, level) {
+        let html = '';
+        nodes.forEach(node => {
+            const isFolder = node.type === 'folder' || node.children.length > 0;
+            const icon = isFolder ? '<i class="fas fa-folder"></i>' : '<i class="fas fa-file"></i>';
+            const hasChildren = node.children.length > 0;
+            const toggleIcon = hasChildren ? '<span class="folder-toggle"><i class="fas fa-chevron-right"></i></span>' : '';
+            const syncIcon = node.type === 'file' && node.isSynced === false ? '<i class="fas fa-exclamation-circle" style="color: #ff9800; margin-right: 5px;" title="未同步到服务器"></i>' : '';
+
+            let actions = '';
+            if (node.id) {
+                if (node.type === 'file') {
+                    actions = `
+                        <button class="file-action-btn history-file" data-id="${node.id}" data-name="${node.name}" title="历史版本"><i class="fas fa-history"></i></button>
+                        <button class="file-action-btn rename-file" data-id="${node.id}" title="重命名"><i class="fas fa-edit"></i></button>
+                        <button class="file-action-btn move-file" data-id="${node.id}" title="移动"><i class="fas fa-arrows-alt"></i></button>
+                        <button class="file-action-btn delete-file" data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>
+                    `;
+                } else {
+                    actions = `
+                        <button class="file-action-btn rename-file" data-id="${node.id}" title="重命名"><i class="fas fa-edit"></i></button>
+                        <button class="file-action-btn move-file" data-id="${node.id}" title="移动"><i class="fas fa-arrows-alt"></i></button>
+                        <button class="file-action-btn delete-file" data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>
+                    `;
+                }
+            }
+
+            html += `<li class="file-item ${node.id === g('currentFileId') ? 'active' : ''}" data-id="${node.id || ''}" data-type="${node.type}">`;
+            html += `<div class="file-header" style="padding-left: ${level*20}px">`;
+            html += toggleIcon;
+            html += `<span class="file-name" title="${node.name}">${icon} ${syncIcon} ${node.basename}</span>`;
+            html += `<div class="file-actions">${actions}</div>`;
+            html += `</div>`;
+            if (hasChildren) {
+                html += `<ul class="file-sublist" style="display:none; list-style:none; padding-left:0;">${renderTree(node.children, level+1)}</ul>`;
+            }
+            html += `</li>`;
+        });
+        return html;
+    }
+
+    function toggleFolder(item) {
+        // console.log('toggleFolder called', item);
+        const sublist = item.querySelector('.file-sublist');
+        if (!sublist) return;
+        const isHidden = sublist.style.display === 'none';
+        sublist.style.display = isHidden ? '' : 'none';
+        const icon = item.querySelector('.folder-toggle i');
+        if (icon) {
+            icon.classList.toggle('fa-chevron-right', !isHidden);
+            icon.classList.toggle('fa-chevron-down', isHidden);
         }
     }
 
@@ -195,53 +388,154 @@
         if (!fileList) return;
         const files = g('files');
         const currentFileId = g('currentFileId');
-        fileList.innerHTML = '';
-        files.forEach(function(file) {
-            const li = document.createElement('li');
-            li.className = 'file-item' + (file.id === currentFileId ? ' active' : '');
-            var syncIcon = file.isSynced === false ? '<i class="fas fa-exclamation-circle" style="color: #ff9800; margin-right: 5px;" title="未同步到服务器"></i>' : '';
-            li.innerHTML = '<div class="file-header"><span class="file-name" title="' + file.name + '">' + syncIcon + file.name + '</span><div class="file-actions"><button class="file-action-btn history-file" data-id="' + file.id + '" data-name="' + file.name + '" title="历史版本"><i class="fas fa-history"></i></button><button class="file-action-btn rename-file" data-id="' + file.id + '" title="重命名"><i class="fas fa-edit"></i></button><button class="file-action-btn delete-file" data-id="' + file.id + '" title="删除"><i class="fas fa-trash"></i></button></div></div>';
-            li.addEventListener('click', function(e) {
-                if (!e.target.closest('.file-action-btn')) {
-                    if (currentFileId) global.saveCurrentFile(true);
-                    openFile(file.id);
+
+        const tree = buildTree(files);
+        fileList.innerHTML = renderTree(tree, 0);
+
+        // ================ 关键修复：事件只绑定一次 ================
+        if (!fileList._treeEventsBound) {
+            fileList._treeEventsBound = true;
+            fileList.addEventListener('click', function(e) {
+                const target = e.target.closest('.file-item');
+                if (!target) return;
+
+                const id = target.dataset.id;
+                const type = target.dataset.type;
+
+                // 点击箭头图标
+                if (e.target.closest('.folder-toggle')) {
+                    e.stopImmediatePropagation();
+                    toggleFolder(target);
+                    return;
+                }
+
+                // 操作按钮点击
+                const btn = e.target.closest('.file-action-btn');
+                if (btn) {
+                    e.stopImmediatePropagation();
+                    if (btn.classList.contains('delete-file') && id) global.deleteFile(id);
+                    else if (btn.classList.contains('rename-file') && id) global.renameFile(id);
+                    else if (btn.classList.contains('move-file') && id) global.moveFile(id);
+                    else if (btn.classList.contains('history-file') && id) {
+                        const name = btn.dataset.name;
+                        if (id) global.showHistoryModal(id, name);
+                    }
+                    return;
+                }
+
+                // 正常点击：文件打开 / 文件夹展开
+                if (type === 'file') {
+                    if (id && g('currentFileId')) global.saveCurrentFile(true);
+                    if (id) openFile(id);
+                } else if (type === 'folder') {
+                    toggleFolder(target);
                 }
             });
-            fileList.appendChild(li);
-        });
-        document.querySelectorAll('.delete-file').forEach(function(btn) {
-            btn.addEventListener('click', function(e) { e.stopPropagation(); global.deleteFile(btn.getAttribute('data-id')); });
-        });
-        document.querySelectorAll('.rename-file').forEach(function(btn) {
-            btn.addEventListener('click', function(e) { e.stopPropagation(); global.renameFile(btn.getAttribute('data-id')); });
-        });
-        document.querySelectorAll('.history-file').forEach(function(btn) {
-            btn.addEventListener('click', function(e) { e.stopPropagation(); global.showHistoryModal(btn.getAttribute('data-id'), btn.getAttribute('data-name')); });
-        });
+        }
     }
 
-    function renameFile(fileId) {
+    // ---------- 文件操作函数 ----------
+    function moveFile(id) {
         const files = g('files');
-        const file = files.find(function(f) { return f.id === fileId; });
-        if (!file) return;
-        const newName = prompt('请输入新的文件名：', file.name);
-        if (!newName || newName.trim() === file.name) return;
-        if (files.find(function(f) { return f.id !== fileId && f.name === newName.trim(); })) {
-            alert('已存在同名文件，请使用其他名称');
+        const item = files.find(f => f.id === id);
+        if (!item) return;
+
+        // 获取所有文件夹路径（包括根目录）
+        const folders = files.filter(f => f.type === 'folder').map(f => f.name);
+        folders.unshift(''); // 根目录
+
+        let options = '此功能正在开发，请暂时不要使用！！！\n请选择目标文件夹（输入序号）：\n';
+        folders.forEach((f, idx) => options += `${idx+1}. ${f === '' ? '/' : f}\n`);
+        const choice = prompt(options + '输入数字：');
+        if (!choice) return;
+
+        const idx = parseInt(choice) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= folders.length) {
+            alert('选择无效');
             return;
         }
-        const oldName = file.name;
-        file.name = newName.trim();
-        file.lastModified = Date.now();
-        if (file.isSynced) file.isSynced = false;
+        const targetPath = folders[idx];
+
+        const oldName = item.name;
+        const newBasename = getBasename(oldName);
+        const newName = targetPath ? targetPath + '/' + newBasename : newBasename;
+
+        if (files.some(f => f.name === newName && f.id !== id)) {
+            alert('目标文件夹下已存在同名项');
+            return;
+        }
+
+        if (item.type === 'folder') {
+            renameFolderAndChildren(oldName, newName);
+        } else {
+            item.name = newName;
+        }
+
+        item.lastModified = Date.now();
+        item.isSynced = false;
         localStorage.setItem('vditor_files', JSON.stringify(files));
         loadFiles();
-        global.showMessage('文件已重命名: ' + oldName + ' → ' + file.name);
-        if (g('currentUser')) global.deleteFileFromServer(oldName).then(function() { global.syncFileToServer(fileId); });
+        global.showMessage(`${item.type === 'folder' ? '文件夹' : '文件'}已移动`);
+        if (g('currentUser')) {
+            if (item.type === 'folder') {
+                const affectedFiles = files.filter(f => f.type === 'file' && (f.name.startsWith(newName + '/') || f.name === newName));
+                affectedFiles.forEach(f => global.syncFileToServer(f.id));
+            } else {
+                global.deleteFileFromServer(oldName).then(() => global.syncFileToServer(id));
+            }
+        }
+    }
+
+    function renameFile(id) {
+        const files = g('files');
+        const item = files.find(f => f.id === id);
+        if (!item) return;
+
+        const isFolder = item.type === 'folder';
+        const oldName = item.name;
+        const parentPath = getParentPath(oldName);
+        const oldBasename = getBasename(oldName);
+
+        const newBasename = prompt(`请输入新的${isFolder ? '文件夹' : '文件'}名：`, oldBasename);
+        if (!newBasename || newBasename.trim() === oldBasename) return;
+
+        if (isNameExistsInParent(newBasename.trim(), parentPath, id)) {
+            alert('该目录下已存在同名文件或文件夹，请使用其他名称');
+            return;
+        }
+
+        const newName = parentPath ? parentPath + '/' + newBasename.trim() : newBasename.trim();
+
+        if (isFolder) {
+            renameFolderAndChildren(oldName, newName);
+        } else {
+            item.name = newName;
+        }
+
+        item.lastModified = Date.now();
+        item.isSynced = false;
+        localStorage.setItem('vditor_files', JSON.stringify(files));
+        loadFiles();
+        global.showMessage(`${isFolder ? '文件夹' : '文件'}已重命名`);
+        if (g('currentUser')) {
+            if (isFolder) {
+                const affectedFiles = files.filter(f => f.type === 'file' && (f.name.startsWith(newName + '/') || f.name === newName));
+                affectedFiles.forEach(f => global.syncFileToServer(f.id));
+            } else {
+                global.deleteFileFromServer(oldName).then(() => global.syncFileToServer(id));
+            }
+        }
     }
 
     function createDefaultFile() {
-        const defaultFile = { id: Date.now().toString(), name: '未命名文档.md', content: '# 欢迎使用 Markdown 编辑器\n\n这是一个新的文档。\n\n## 功能特性\n\n- 支持 Markdown 语法\n- 实时预览\n- 自动保存\n- 多文件管理\n\n开始编写吧！', lastModified: Date.now(), isSynced: false };
+        const defaultFile = {
+            id: Date.now().toString(),
+            name: '未命名文档', // 无前导斜杠
+            type: 'file',
+            content: '# 欢迎使用 Markdown 编辑器\n\n这是一个新的文档。\n\n## 功能特性\n\n- 支持 Markdown 语法\n- 实时预览\n- 自动保存\n- 多文件管理\n\n开始编写吧！',
+            lastModified: Date.now(),
+            isSynced: false
+        };
         global.files.push(defaultFile);
         localStorage.setItem('vditor_files', JSON.stringify(global.files));
         global.currentFileId = defaultFile.id;
@@ -252,23 +546,73 @@
     }
 
     function createNewFile() {
-        const fileName = prompt('请输入文件名', new Date().toLocaleDateString() + '.md');
-        if (!fileName) return;
-        const newFile = { id: Date.now().toString(), name: fileName, content: '# 新文档\n\n开始编写您的内容...', lastModified: Date.now(), isSynced: false };
-        global.files.push(newFile);
-        localStorage.setItem('vditor_files', JSON.stringify(global.files));
+        const input = prompt('请输入文件名（可包含路径，例如 docs/notes/new）', '新文档');
+        if (!input) return;
+
+        let path = normalizePath(input);
+        ensureParentFolders(path);
+
+        const files = g('files');
+        if (files.some(f => f.name === path && f.type === 'file')) {
+            alert('已存在同名文件，请使用其他名称');
+            return;
+        }
+
+        const newFile = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            name: path,
+            type: 'file',
+            content: '# 新文档\n\n开始编写您的内容...',
+            lastModified: Date.now(),
+            isSynced: false
+        };
+        files.push(newFile);
+        localStorage.setItem('vditor_files', JSON.stringify(files));
         openFile(newFile.id);
         loadFiles();
         g('lastSyncedContent')[newFile.id] = newFile.content;
         g('unsavedChanges')[newFile.id] = false;
         if (g('currentUser')) global.syncFileToServer(newFile.id);
-        global.showMessage('已创建文件: ' + fileName);
+        global.showMessage('已创建文件: ' + path);
+    }
+
+    function createNewFolder() {
+        const input = prompt('请输入文件夹路径（例如 docs/notes）', '新文件夹');
+        if (!input) return;
+
+        let path = normalizePath(input);
+        ensureParentFolders(path);
+
+        const files = g('files');
+        if (files.some(f => f.name === path)) {
+            alert('该路径已存在');
+            return;
+        }
+
+        const newFolder = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            name: path,
+            type: 'folder',
+            content: '',
+            lastModified: Date.now(),
+            isSynced: false
+        };
+        files.push(newFolder);
+        localStorage.setItem('vditor_files', JSON.stringify(files));
+        loadFiles();
+        if (g('currentUser')) {
+            global.syncFileToServer(newFolder.id);
+        }
+        global.showMessage('已创建文件夹: ' + path);
     }
 
     function openFile(fileId) {
         const files = g('files');
-        const file = files.find(function(f) { return f.id === fileId; });
-        if (!file) return;
+        const file = files.find(f => f.id === fileId && f.type === 'file');
+        if (!file) {
+            alert('无法打开文件夹');
+            return;
+        }
         global.currentFileId = fileId;
         if (g('vditor')) g('vditor').setValue(file.content);
         loadFiles();
@@ -276,24 +620,60 @@
         global.showMessage('已打开文件: ' + file.name);
     }
 
-    function deleteFile(fileId) {
+    function deleteFile(id) {
         const files = g('files');
-        if (files.length <= 1) { alert('至少需要保留一个文件'); return; }
-        if (!confirm('确定要删除这个文件吗？')) return;
-        const fileIndex = files.findIndex(function(f) { return f.id === fileId; });
-        if (fileIndex === -1) return;
-        const deletedFile = files[fileIndex];
-        files.splice(fileIndex, 1);
-        localStorage.setItem('vditor_files', JSON.stringify(files));
-        if (g('currentUser')) global.deleteFileFromServer(deletedFile.name);
-        delete g('lastSyncedContent')[fileId];
-        delete g('unsavedChanges')[fileId];
-        if (fileId === g('currentFileId')) {
-            if (files.length > 0) openFile(files[0].id);
-            else createDefaultFile();
+        const item = files.find(f => f.id === id);
+        if (!item) return;
+
+        if (item.type === 'file') {
+            if (files.filter(f => f.type === 'file').length <= 1) {
+                alert('至少需要保留一个文件');
+                return;
+            }
+            if (!confirm('确定要删除这个文件吗？')) return;
+
+            const idx = files.findIndex(f => f.id === id);
+            files.splice(idx, 1);
+            localStorage.setItem('vditor_files', JSON.stringify(files));
+
+            if (g('currentUser')) global.deleteFileFromServer(item.name);
+            delete g('lastSyncedContent')[id];
+            delete g('unsavedChanges')[id];
+
+            if (id === g('currentFileId')) {
+                const firstFile = files.find(f => f.type === 'file');
+                if (firstFile) openFile(firstFile.id);
+                else createDefaultFile();
+            }
+            loadFiles();
+            global.showMessage('已删除文件: ' + item.name);
+        } else {
+            if (!confirm(`确定要删除文件夹“${item.name}”及其所有内容吗？`)) return;
+
+            const toDelete = files.filter(f => f.name === item.name || f.name.startsWith(item.name + '/'));
+            const fileNamesToDelete = toDelete.filter(f => f.type === 'file').map(f => f.name);
+
+            deleteFolderAndChildren(item.name);
+            localStorage.setItem('vditor_files', JSON.stringify(files));
+
+            if (g('currentUser')) {
+                fileNamesToDelete.forEach(name => global.deleteFileFromServer(name));
+                global.deleteFileFromServer(item.name);
+            }
+
+            toDelete.forEach(f => {
+                delete g('lastSyncedContent')[f.id];
+                delete g('unsavedChanges')[f.id];
+            });
+
+            if (id === g('currentFileId') || toDelete.some(f => f.id === g('currentFileId'))) {
+                const firstFile = files.find(f => f.type === 'file');
+                if (firstFile) openFile(firstFile.id);
+                else createDefaultFile();
+            }
+            loadFiles();
+            global.showMessage('已删除文件夹: ' + item.name);
         }
-        loadFiles();
-        global.showMessage('已删除文件: ' + deletedFile.name);
     }
 
     async function saveCurrentFile(isManual) {
@@ -302,7 +682,7 @@
         const vditor = g('vditor');
         if (!currentFileId || !vditor) return;
         const files = g('files');
-        const fileIndex = files.findIndex(function(f) { return f.id === currentFileId; });
+        const fileIndex = files.findIndex(function(f) { return f.id === currentFileId && f.type === 'file'; });
         if (fileIndex === -1) return;
         const content = vditor.getValue();
         const file = files[fileIndex];
@@ -412,6 +792,7 @@
         const vditor = g('vditor');
         const lastSyncedContent = g('lastSyncedContent');
         const filesToSync = files.filter(function(file) {
+            if (file.type !== 'file') return false;
             const currentContent = vditor && file.id === currentFileId ? vditor.getValue() : file.content;
             return !file.isSynced || currentContent !== lastSyncedContent[file.id];
         });
@@ -431,15 +812,13 @@
         const files = g('files');
         const file = files.find(function(f) { return f.id === fileId; });
         if (!file) return;
-        const vditor = g('vditor');
-        const currentFileId = g('currentFileId');
-        const currentContent = vditor && file.id === currentFileId ? vditor.getValue() : file.content;
+        const content = file.type === 'file' ? (g('vditor') && file.id === g('currentFileId') ? g('vditor').getValue() : file.content) : '';
         try {
             var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
             const response = await fetch(api + '?action=save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': g('currentUser').token || g('currentUser').username },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: file.name, content: currentContent })
+                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: file.name, content: content })
             });
             const result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             if (result.code === 200) {
@@ -448,7 +827,7 @@
                     files[fileIndex].isSynced = true;
                     files[fileIndex].lastModified = Date.now();
                     localStorage.setItem('vditor_files', JSON.stringify(files));
-                    g('lastSyncedContent')[fileId] = currentContent;
+                    g('lastSyncedContent')[fileId] = content;
                     g('unsavedChanges')[fileId] = false;
                 }
                 return true;
@@ -658,10 +1037,8 @@
 
     /**
      * 导入本地文件到文件列表
-     * 支持多选，自动处理文件名冲突
      */
     global.importFiles = function() {
-        // 创建隐藏的文件输入元素
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.multiple = true;
@@ -677,40 +1054,36 @@
             let skippedCount = 0;
             const newFiles = [];
 
-            // 获取现有文件名列表，用于冲突检测
             const existingNames = new Set(g('files').map(f => f.name));
 
             for (const file of files) {
                 try {
                     const content = await readFileAsText(file);
                     let fileName = file.name;
+                    fileName = normalizePath(fileName);
 
-                    // 处理文件名冲突：如果已存在，添加数字后缀
                     let baseName = fileName;
-                    let extension = '';
-                    const lastDotIndex = fileName.lastIndexOf('.');
-                    if (lastDotIndex !== -1) {
-                        baseName = fileName.substring(0, lastDotIndex);
-                        extension = fileName.substring(lastDotIndex);
-                    }
-
                     let counter = 1;
                     while (existingNames.has(fileName)) {
-                        fileName = `${baseName} (${counter})${extension}`;
+                        const parts = fileName.split('/');
+                        const lastPart = parts.pop();
+                        const newLastPart = lastPart.replace(/(\d+)?$/, (m) => m ? parseInt(m)+1 : '1');
+                        parts.push(newLastPart);
+                        fileName = parts.join('/');
                         counter++;
                     }
 
-                    // 创建新文件对象
                     const newFile = {
                         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
                         name: fileName,
+                        type: 'file',
                         content: content,
                         lastModified: Date.now(),
                         isSynced: false
                     };
 
                     newFiles.push(newFile);
-                    existingNames.add(fileName); // 更新已存在名称集合
+                    existingNames.add(fileName);
                     importedCount++;
                 } catch (error) {
                     console.error(`读取文件 ${file.name} 失败:`, error);
@@ -720,27 +1093,19 @@
             }
 
             if (newFiles.length > 0) {
-                // 将新文件添加到全局文件列表
+                newFiles.forEach(f => ensureParentFolders(f.name));
                 g('files').push(...newFiles);
                 localStorage.setItem('vditor_files', JSON.stringify(g('files')));
 
-                // 初始化同步状态
                 newFiles.forEach(file => {
                     g('lastSyncedContent')[file.id] = file.content;
                     g('unsavedChanges')[file.id] = false;
                 });
 
-                // 刷新文件列表
                 loadFiles();
+                if (newFiles.length > 0) openFile(newFiles[0].id);
 
-                // 打开第一个导入的文件
-                if (newFiles.length > 0) {
-                    openFile(newFiles[0].id);
-                }
-
-                // 如果用户已登录，同步到服务器
                 if (g('currentUser')) {
-                    // 逐个同步新文件（避免并发过多）
                     for (const file of newFiles) {
                         try {
                             await global.syncFileToServer(file.id);
@@ -755,17 +1120,12 @@
                 global.showMessage('没有导入任何文件', 'warning');
             }
 
-            // 清理输入元素
             fileInput.remove();
         });
 
-        // 触发文件选择
         fileInput.click();
     };
 
-    /**
-     * 辅助函数：将 File 对象读取为文本
-     */
     function readFileAsText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -775,7 +1135,6 @@
         });
     }
 
-
     // 导出到 global
     global.loadFilesFromServer = loadFilesFromServer;
     global.loadLocalFiles = loadLocalFiles;
@@ -783,6 +1142,7 @@
     global.renameFile = renameFile;
     global.createDefaultFile = createDefaultFile;
     global.createNewFile = createNewFile;
+    global.createNewFolder = createNewFolder;
     global.openFile = openFile;
     global.deleteFile = deleteFile;
     global.saveCurrentFile = saveCurrentFile;
@@ -799,5 +1159,6 @@
     global.previewHistoryVersion = previewHistoryVersion;
     global.restoreFromHistory = restoreFromHistory;
     global.deleteHistoryVersion = deleteHistoryVersion;
+    global.moveFile = moveFile;
 
 })(typeof window !== 'undefined' ? window : this);
