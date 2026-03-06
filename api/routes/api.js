@@ -16,6 +16,8 @@ const storage = multer.diskStorage({
         cb(null, dir);
     },
     filename: function (req, file, cb) {
+        // Fix for non-ASCII filenames
+        file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const ext = path.extname(file.originalname);
         const username = req.body.username || 'unknown';
         cb(null, `${username}_${Date.now()}_${path.basename(file.originalname, ext)}${ext}`);
@@ -32,6 +34,8 @@ const generalStorage = multer.diskStorage({
         cb(null, dir);
     },
     filename: function (req, file, cb) {
+        // Fix for non-ASCII filenames
+        file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const ext = path.extname(file.originalname);
         cb(null, `${Date.now()}_${path.basename(file.originalname, ext)}${ext}`);
     }

@@ -1,10 +1,13 @@
 import 'vditor/dist/index.css';
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import '@fortawesome/fontawesome-free/js/all.min.js';
 import './css/styles.css';
 
 import Vditor from 'vditor';
 
 window.Vditor = Vditor;
+
+import * as htmlToImage from 'html-to-image';
+window.htmlToImage = htmlToImage;
 
 import './js/utils.js';
 import './js/auth.js';

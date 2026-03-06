@@ -1,5 +1,15 @@
-.env
 .git/
 .idea/
+
 db.sql
-node_modules
+.env
+
+node_modules/
+dist/
+build/
+
+*.tmp
+*.temp
+*.tgz
+*.tar.gz
+*.exe

@@ -251,61 +251,73 @@
                 try {
                     // 确保 Mermaid 库已加载
                     if (!window.mermaid) {
-                        throw new Error('Mermaid库未加载');
+                        // 尝试动态加载 Mermaid
+                        console.warn('Mermaid库未加载，尝试动态加载...');
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
                     }
 
-                    // 清理 Mermaid 代码，移除可能导致问题的前缀
+                    if (!window.mermaid) {
+                        throw new Error('Mermaid库加载失败');
+                    }
+
+                    // 清理 Mermaid 代码
                     var cleanedCode = mermaidCode.trim();
-                    // 移除可能的 --- 开头的元数据
                     if (cleanedCode.startsWith('---')) {
                         cleanedCode = cleanedCode.split('---').slice(2).join('---').trim();
                     }
 
-                    // 初始化 Mermaid 配置
+                    // 初始化 Mermaid
                     mermaid.initialize({
                         startOnLoad: false,
                         theme: 'default',
                         securityLevel: 'loose',
-                        flowchart: {
-                            useMaxWidth: true,
-                            htmlLabels: true
-                        }
                     });
 
                     // 创建一个独立的 div 来渲染 Mermaid 图表
                     var mermaidDiv = document.createElement('div');
                     mermaidDiv.className = 'mermaid';
                     mermaidDiv.textContent = cleanedCode;
-                    mermaidDiv.style.cssText = 'width:600px; height:400px; padding:20px; background:white;';
-                    tempDiv.appendChild(mermaidDiv);
+                    mermaidDiv.style.cssText = 'background:white; padding:20px;';
+                    // 先添加到 body 以确保 mermaid 能正确计算尺寸
+                    document.body.appendChild(mermaidDiv);
+                    
+                    try {
+                        // 兼容新旧版本 Mermaid API
+                        if (mermaid.run) {
+                            await mermaid.run({ nodes: [mermaidDiv] });
+                        } else if (mermaid.init) {
+                            mermaid.init(undefined, mermaidDiv);
+                        } else {
+                            throw new Error('未找到可用的 Mermaid 渲染方法');
+                        }
 
-                    // 等待一小段时间确保 DOM 元素创建完成
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                        // 等待渲染完成
+                        await new Promise(resolve => setTimeout(resolve, 500));
 
-                    // 使用 Mermaid 的 init 方法渲染图表
-                    mermaid.init(undefined, mermaidDiv);
-
-                    // 等待更长时间确保渲染完成
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    // 检查是否渲染成功（是否生成了 SVG）
-                    var svgElement = mermaidDiv.querySelector('svg');
-                    if (svgElement) {
-                        // 获取 SVG 元素的实际尺寸
-                        var svgRect = svgElement.getBoundingClientRect();
-
-                        // 根据 SVG 元素的实际尺寸调整容器大小
-                        var containerWidth = Math.max(400, svgRect.width + 40); // 至少400px，加上40px的padding
-                        var containerHeight = Math.max(400, svgRect.height + 40); // 至少400px，加上40px的padding
-                        tempDiv.style.width = containerWidth + 'px';
-                        tempDiv.style.height = containerHeight + 'px';
-
-                        // 只保留 SVG 元素，移除原始文本
-                        tempDiv.innerHTML = '';
-                        tempDiv.appendChild(svgElement);
-                    } else {
-                        console.error('Mermaid渲染失败，未生成SVG元素');
-                        throw new Error('Mermaid渲染失败，未生成SVG元素');
+                        var svgElement = mermaidDiv.querySelector('svg');
+                        if (svgElement) {
+                            var svgRect = svgElement.getBoundingClientRect();
+                            var width = Math.max(400, svgRect.width + 40);
+                            var height = Math.max(300, svgRect.height + 40);
+                            
+                            // 将渲染好的 SVG 移动到 tempDiv
+                            tempDiv.innerHTML = '';
+                            tempDiv.appendChild(svgElement);
+                            tempDiv.style.width = width + 'px';
+                            tempDiv.style.height = height + 'px';
+                        } else {
+                            throw new Error('Mermaid渲染未生成SVG');
+                        }
+                    } finally {
+                        if (mermaidDiv.parentNode === document.body) {
+                            document.body.removeChild(mermaidDiv);
+                        }
                     }
                 } catch (mermaidError) {
                     console.error('Mermaid渲染失败:', mermaidError);

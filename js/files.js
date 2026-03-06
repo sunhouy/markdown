@@ -446,7 +446,7 @@
         const isHidden = sublist.style.display === 'none';
         sublist.style.display = isHidden ? 'block' : 'none'; // 使用 block 正常向下撑开
 
-        const icon = item.querySelector(':scope > .file-header .folder-toggle i');
+        const icon = item.querySelector(':scope > .file-header .folder-toggle svg');
         if (icon) {
             icon.classList.toggle('fa-chevron-right', !isHidden);
             icon.classList.toggle('fa-chevron-down', isHidden);

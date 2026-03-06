@@ -137,8 +137,8 @@ body.night-mode .mobile-bottom-bar {
     height: 36px; /* 固定高度 */
 }
 
-.bottom-btn i {
-    font-size: 28px; /* 图标调大 */
+.bottom-btn svg {
+    font-size: 18px; 
     margin-bottom: 2px;
 }
 
@@ -171,7 +171,7 @@ body.night-mode .bottom-btn:active {
     padding: 10px 0;
     min-width: 200px;
     z-index: 1003;
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
 }
 
@@ -197,7 +197,7 @@ body.night-mode .mobile-dropdown-content {
     transition: background 0.2s ease;
 }
 
-.dropdown-item i {
+.dropdown-item svg {
     margin-right: 12px;
     font-size: 18px;
     width: 24px;
@@ -1241,7 +1241,7 @@ body.night-mode .custom-fullscreen-btn {
     align-items: center;
 }
 
-.history-info i {
+.history-info svg {
     margin-right: 8px;
     color: #4a90e2;
 }
@@ -1591,7 +1591,7 @@ body.night-mode .editor-container {
     background: #c82333 !important;
 }
 
-.delete-history-btn i {
+.delete-history-btn svg {
     font-size: 11px;
 }
 
@@ -1623,8 +1623,8 @@ body.night-mode .editor-container {
     background: #3a7bc8 !important;
 }
 
-.preview-btn i,
-.restore-btn i {
+.preview-btn svg,
+.restore-btn svg {
     font-size: 11px;
 }
 
