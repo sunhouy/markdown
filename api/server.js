@@ -33,7 +33,7 @@ if (fs.existsSync(distPath)) {
 }
 
 // Import routes
-// const legacyRoutes = require('./routes/legacy');
+const legacyRoutes = require('./routes/legacy');
 const authRoutes = require('./routes/auth');
 const fileRoutes = require('./routes/files');
 const shareRoutes = require('./routes/share');
@@ -41,7 +41,7 @@ const adminRoutes = require('./routes/admin');
 const apiRoutes = require('./routes/api');
 
 // Use routes
-// app.use('/api', legacyRoutes);
+app.use('/api', legacyRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/share', shareRoutes);

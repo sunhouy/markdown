@@ -98,7 +98,12 @@
                 var preview = t.substring(0, 120).replace(/\s+/g, ' ');
                 var msg = '接口返回了非 JSON 内容';
                 if (status === 404) {
-                    msg = '接口地址未找到(404)，请确认 API 路径是否为 /api/index.php';
+                    // Check if the request was actually for the legacy PHP API
+                    if (response.url && response.url.indexOf('/api/index.php') !== -1) {
+                        msg = '接口地址未找到(404)，请确认 API 路径是否为 /api/index.php';
+                    } else {
+                        msg = '接口地址未找到(404)，请检查服务器 API 服务是否正常运行';
+                    }
                 } else if (status === 500) {
                     msg = '服务器内部错误(500)，请查看服务器或 api/error.log';
                 } else if (status >= 400) {
