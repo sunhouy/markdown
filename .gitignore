@@ -1,6 +1,5 @@
-api/config.php
+.env
 .git/
 .idea/
-vditor@3.11.2
-css/fontawesome
-css/fonts
+db.sql
+node_modules

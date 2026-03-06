@@ -35,8 +35,9 @@ document.addEventListener('DOMContentLoaded', function() {
         height: '100%',
         width: '100%',
         placeholder: '开始编辑...支持 Markdown 语法',
+        cdn: '/vditor', // 使用本地目录
         toolbar: ['emoji', 'br', 'bold', 'italic', 'strike', '|', 'line', 'quote', 'list', 'ordered-list', 'check', 'outdent', 'indent', 'code', 'inline-code', 'insert-after', 'insert-before', 'upload', 'link', 'table', 'record', 'edit-mode', 'both', 'preview', 'fullscreen', 'outline', 'code-theme', 'content-theme', 'export', 'info', 'help', 'br'],
-        customWysiwygToolbar: undefined,
+        customWysiwygToolbar: function() {}, // 修复报错
         theme: window.nightMode ? 'dark' : 'classic',
         mode: localStorage.getItem('vditor_editor_mode') || 'ir',
         cache: { enable: true, id: 'vditor-mobile-optimized' },
@@ -113,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var mobilePrintBtn = document.getElementById('mobilePrintBtn');
         if (mobilePrintBtn) mobilePrintBtn.addEventListener('click', function() { window.showPrintDialog(); closeDrop(); });
         var mobileFormulaBtn = document.getElementById('mobileFormulaBtn');
-        if (mobileFormulaBtn) mobileFormulaBtn.addEventListener('click', function() { if (typeof showFormulaPicker === 'function') showFormulaPicker(); });
+        if (mobileFormulaBtn) mobileFormulaBtn.addEventListener('click', function() { if (typeof window.showFormulaPicker === 'function') window.showFormulaPicker(); });
         var mobileChartBtn = document.getElementById('mobileChartBtn');
         if (mobileChartBtn) mobileChartBtn.addEventListener('click', function() { window.showChartPicker(); });
         var mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -125,6 +126,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var mobileImportBtn = document.getElementById('mobileImportBtn');
         if (mobileImportBtn) mobileImportBtn.addEventListener('click', function() { window.importFiles(); closeDrop(); });
+
+        var aboutBtn = document.getElementById('aboutBtn');
+        if (aboutBtn) aboutBtn.addEventListener('click', function() { window.about(); closeDrop(); });
+
 
         var mobileClearBtn = document.getElementById('mobileClearBtn');
         if (mobileClearBtn) mobileClearBtn.addEventListener('click', function() {
@@ -176,8 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 height: editorConfig.height,
                 width: editorConfig.width,
                 placeholder: editorConfig.placeholder,
+                cdn: '/vditor', // 使用本地目录
                 toolbar: ['emoji', 'br', 'bold', 'italic', 'strike', '|', 'line', 'quote', 'list', 'ordered-list', 'check', 'outdent', 'indent', 'code', 'inline-code', 'insert-after', 'insert-before', 'upload', 'link', 'table', 'record', 'edit-mode', 'both', 'preview', 'fullscreen', 'outline', 'code-theme', 'content-theme', 'export', 'info', 'help', 'br'],
-                customWysiwygToolbar: undefined,
+                customWysiwygToolbar: function() {},
                 theme: window.nightMode ? 'dark' : 'classic',
                 mode: mode,
                 value: currentContent,
@@ -241,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var btns = [
             { id: 'mobileFormatBtn', fn: function() { window.showFormatMenu(); } },
             { id: 'mobileInsertBtn', fn: function() { window.showInsertMenu(); } },
-            { id: 'mobileFormulaBtn', fn: function() { if (typeof showFormulaPicker === 'function') showFormulaPicker(); } },
+            { id: 'mobileFormulaBtn', fn: function() { if (typeof window.showFormulaPicker === 'function') window.showFormulaPicker(); } },
             { id: 'mobileChartBtn', fn: function() { window.showChartPicker(); } },
             { id: 'mobileSaveBottomBtn', fn: function() { window.saveCurrentFile(true); } },
             { id: 'mobileLoginBtn', fn: window.handleLoginButtonClick },
@@ -263,12 +269,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var historyModalOverlay = document.getElementById('historyModalOverlay');
     if (historyModalOverlay) historyModalOverlay.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
 
-    var script0 = document.createElement('script');
-    script0.src = 'js/emoji-picker.js';
-    document.head.appendChild(script0);
-    var script1 = document.createElement('script');
-    script1.src = 'js/formula-picker.js';
-    document.head.appendChild(script1);
+    // 移除动态插入脚本，改为在 entry.js 中引入
+    // var script0 = document.createElement('script');
+    // script0.src = 'js/emoji-picker.js';
+    // document.head.appendChild(script0);
+    // var script1 = document.createElement('script');
+    // script1.src = 'js/formula-picker.js';
+    // document.head.appendChild(script1);
 
     window.addEventListener('beforeunload', function(e) {
         var unsaved = window.unsavedChanges || {};

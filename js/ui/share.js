@@ -1,0 +1,313 @@
+
+(function(global) {
+    'use strict';
+
+    function g(name) { return global[name]; }
+
+    async function createShareLink(filename, mode, sharePassword, expireDays) {
+        mode = mode || 'view';
+        expireDays = expireDays || 7;
+        if (!g('currentUser')) throw new Error('用户未登录');
+        try {
+            var body = { username: g('currentUser').username, token: g('currentUser').token, password: g('currentUser').password, filename: filename, mode: mode, expire_days: expireDays };
+            if (sharePassword && sharePassword.trim()) body.share_password = sharePassword.trim();
+            var apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api') + '/share/create';
+            var response = await fetch(apiUrl, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) }, 
+                body: JSON.stringify(body) 
+            });
+            if (global.parseJsonResponse) return await global.parseJsonResponse(response);
+            var text = await response.text();
+            if ((text || '').trim().charAt(0) === '<') return { code: 500, message: '接口返回了非 JSON 内容，请检查 API 与后端服务' };
+            try { return JSON.parse(text); } catch (e) { return { code: 500, message: '响应解析失败' }; }
+        } catch (e) {
+            console.error('创建分享链接失败', e);
+            return { code: 500, message: '网络错误: ' + (e.message || '') };
+        }
+    }
+
+    function showShareResult(shareData, oldModal) {
+        if (oldModal) oldModal.remove();
+        var nightMode = g('nightMode') === true;
+        var resultModal = document.createElement('div');
+        resultModal.className = 'modal-overlay';
+        resultModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;';
+        var modalContent = document.createElement('div');
+        modalContent.style.cssText = 'background:' + (nightMode ? '#2d2d2d' : 'white') + ';color:' + (nightMode ? '#eee' : '#333') + ';border-radius:12px;padding:25px;width:90%;max-width:500px;';
+        modalContent.innerHTML = '<div style="text-align:center;margin-bottom:20px;color:#2ecc71;"><i class="fas fa-check-circle" style="font-size:48px;"></i></div><h2 style="text-align:center;margin-bottom:15px;">分享链接创建成功</h2><div style="background:' + (nightMode ? '#3d3d3d' : '#f5f5f5') + ';padding:15px;border-radius:8px;margin-bottom:20px;"><div style="font-size:12px;margin-bottom:5px;">分享链接：</div><div style="word-break:break-all;font-size:14px;padding:8px;">' + shareData.share_url + '</div></div><div style="display:flex;gap:10px;"><button class="share-copy-btn" style="flex:1;padding:12px;background:#4a90e2;color:white;border:none;border-radius:6px;cursor:pointer;">复制链接</button><button class="share-close-btn" style="flex:1;padding:12px;background:' + (nightMode ? '#555' : '#6c757d') + ';color:white;border:none;border-radius:6px;cursor:pointer;">完成</button></div>';
+        resultModal.appendChild(modalContent);
+        document.body.appendChild(resultModal);
+        modalContent.querySelector('.share-copy-btn').onclick = function() {
+            navigator.clipboard.writeText(shareData.share_url).then(function() {
+                global.showMessage('链接已复制');
+            });
+        };
+        modalContent.querySelector('.share-close-btn').onclick = function() { resultModal.remove(); };
+        resultModal.addEventListener('click', function(e) { if (e.target === resultModal) resultModal.remove(); });
+    }
+
+    function showShareDialog() {
+        if (!g('currentUser')) { global.showMessage('请先登录以使用分享功能', 'error'); return; }
+        if (!g('currentFileId')) { global.showMessage('请先打开或创建文件', 'error'); return; }
+        var files = g('files');
+        var file = files.find(function(f) { return f.id === g('currentFileId'); });
+        if (!file) { global.showMessage('未找到当前文件', 'error'); return; }
+        var nightMode = g('nightMode') === true;
+
+        // 创建分享对话框
+        var shareModal = document.createElement('div');
+        shareModal.className = 'modal-overlay';
+        shareModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;';
+        var bg = nightMode ? '#2d2d2d' : 'white';
+        var textColor = nightMode ? '#eee' : '#333';
+        var shareContent = document.createElement('div');
+        shareContent.style.cssText = 'background:' + bg + ';color:' + textColor + ';border-radius:12px;padding:25px;width:90%;max-width:500px;';
+
+        // 显示加载状态
+        shareContent.innerHTML = '<h2 style="text-align:center;margin-bottom:15px;">分享文档</h2><p style="text-align:center;margin-bottom:20px;">文件: ' + file.name + '</p><div style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;"></i><p style="margin-top:10px;">检查分享链接...</p></div>';
+        shareModal.appendChild(shareContent);
+        document.body.appendChild(shareModal);
+
+        // 检查是否已有分享链接
+        checkExistingShareLink(file.name, shareModal, shareContent, nightMode, bg, textColor);
+
+        shareModal.addEventListener('click', function(e) { if (e.target === shareModal) shareModal.remove(); });
+    }
+
+    async function checkExistingShareLink(filename, shareModal, shareContent, nightMode, bg, textColor) {
+        try {
+            // 调用API检查是否已有分享链接
+            var apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api') + '/share/list?username=' + encodeURIComponent(g('currentUser').username);
+            var response = await fetch(apiUrl, { 
+                method: 'GET', 
+                headers: { 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) } 
+            });
+            var result = await global.parseJsonResponse(response);
+
+            if (result.code === 200 && result.data && result.data.shares) {
+                // 查找当前文件的分享链接
+                var existingShare = result.data.shares.find(function(share) { return share.filename === filename; });
+                if (existingShare) {
+                    // 显示已有的分享链接
+                    showExistingShareLink(existingShare, filename, shareModal, shareContent, nightMode, bg, textColor);
+                } else {
+                    // 没有分享链接，显示创建界面
+                    showCreateShareLink(filename, shareModal, shareContent, nightMode, bg, textColor);
+                }
+            } else {
+                // API调用失败，显示创建界面
+                showCreateShareLink(filename, shareModal, shareContent, nightMode, bg, textColor);
+            }
+        } catch (error) {
+            console.error('检查分享链接失败:', error);
+            // 出错时显示创建界面
+            showCreateShareLink(filename, shareModal, shareContent, nightMode, bg, textColor);
+        }
+    }
+
+    function showExistingShareLink(existingShare, filename, shareModal, shareContent, nightMode, bg, textColor) {
+        // 生成过期时间选项
+        var expiryOptions = '';
+        var expiryValues = [7, 30, 0];
+        var expiryLabels = ['7天后', '30天后', '永不过期'];
+        var currentExpiry = 7; // 默认值
+
+        // 计算当前过期时间（如果有）
+        if (existingShare.expires_at) {
+            var now = new Date();
+            var expiryDate = new Date(existingShare.expires_at);
+            var daysDiff = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+            if (daysDiff <= 7) currentExpiry = 7;
+            else if (daysDiff <= 30) currentExpiry = 30;
+            else currentExpiry = 0;
+        } else {
+            currentExpiry = 0; // 永不过期
+        }
+
+        for (var i = 0; i < expiryValues.length; i++) {
+            var selected = (expiryValues[i] === currentExpiry) ? 'selected' : '';
+            expiryOptions += '<option value="' + expiryValues[i] + '" ' + selected + '>' + expiryLabels[i] + '</option>';
+        }
+
+        // 更新对话框内容
+        shareContent.innerHTML = `
+            <h2 style="text-align:center;margin-bottom:15px;">分享文档</h2>
+            <p style="text-align:center;margin-bottom:20px;">文件: ${filename}</p>
+            
+            <!-- 现有分享链接信息 -->
+            <div style="background:${nightMode ? '#3d3d3d' : '#f5f5f5'};padding:15px;border-radius:8px;margin-bottom:20px;">
+                <h3 style="margin-bottom:10px;">现有分享链接</h3>
+                <div style="word-break:break-all;margin-bottom:10px;">
+                    <strong>链接:</strong> <a href="${existingShare.share_url}" target="_blank" style="color:#4a90e2;">${existingShare.share_url}</a>
+                </div>
+                <div style="font-size:14px;color:${nightMode ? '#aaa' : '#666'};">
+                    <p><strong>模式:</strong> ${existingShare.mode === 'view' ? '仅查看' : '允许编辑'}</p>
+                    <p><strong>创建时间:</strong> ${new Date(existingShare.created_at).toLocaleString()}</p>
+                    ${existingShare.expires_at ? `<p><strong>过期时间:</strong> ${new Date(existingShare.expires_at).toLocaleString()}</p>` : '<p><strong>过期时间:</strong> 永不过期</p>'}
+                </div>
+            </div>
+            
+            <!-- 编辑选项 -->
+            <div style="margin-bottom:15px;">
+                <label>分享模式</label>
+                <div style="margin-top:8px;">
+                    <label><input type="radio" name="shareMode" value="view" ${existingShare.mode === 'view' ? 'checked' : ''}> 仅查看</label>
+                    <label><input type="radio" name="shareMode" value="edit" ${existingShare.mode === 'edit' ? 'checked' : ''}> 允许编辑</label>
+                </div>
+            </div>
+            
+            <div style="margin-bottom:15px;">
+                <label>过期时间</label>
+                <select id="shareExpiry" style="width:100%;padding:8px;margin-top:5px;">
+                    ${expiryOptions}
+                </select>
+            </div>
+            
+            <div id="shareError" style="color:#e74c3c;font-size:13px;margin-bottom:10px;display:none;"></div>
+            
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="button" id="shareCancelBtn" style="flex:1;padding:10px;background:${nightMode ? '#555' : '#6c757d'};color:white;border:none;border-radius:6px;cursor:pointer;">取消</button>
+                <button type="button" id="shareDeleteBtn" style="flex:1;padding:10px;background:${nightMode ? '#555' : '#dc3545'};color:white;border:none;border-radius:6px;cursor:pointer;">删除链接</button>
+                <button type="button" id="shareUpdateBtn" style="flex:2;padding:10px;background:#4a90e2;color:white;border:none;border-radius:6px;cursor:pointer;">更新链接</button>
+            </div>
+        `;
+
+        // 绑定按钮事件
+        shareContent.querySelector('#shareCancelBtn').onclick = function() { shareModal.remove(); };
+
+        // 删除分享链接
+        shareContent.querySelector('#shareDeleteBtn').onclick = async function() {
+            if (confirm('确定要删除这个分享链接吗？删除后将无法恢复。')) {
+                var btn = this;
+                btn.disabled = true;
+                btn.textContent = '删除中...';
+                try {
+                    var body = { username: g('currentUser').username, token: g('currentUser').token, password: g('currentUser').password, share_id: existingShare.share_id };
+                    var apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api') + '/share/delete';
+                    var response = await fetch(apiUrl, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) }, 
+                        body: JSON.stringify(body) 
+                    });
+                    var result = await global.parseJsonResponse(response);
+                    if (result.code === 200) {
+                        global.showMessage('分享链接已删除');
+                        shareModal.remove();
+                    } else {
+                        shareContent.querySelector('#shareError').textContent = result.message || '删除失败';
+                        shareContent.querySelector('#shareError').style.display = 'block';
+                        btn.disabled = false;
+                        btn.textContent = '删除链接';
+                    }
+                } catch (err) {
+                    shareContent.querySelector('#shareError').textContent = err.message || '网络错误';
+                    shareContent.querySelector('#shareError').style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = '删除链接';
+                }
+            }
+        };
+
+        // 更新分享链接
+        shareContent.querySelector('#shareUpdateBtn').onclick = async function() {
+            var btn = this;
+            btn.disabled = true;
+            btn.textContent = '更新中...';
+            var mode = shareContent.querySelector('input[name="shareMode"]:checked').value;
+            var expireDays = parseInt(shareContent.querySelector('#shareExpiry').value) || 7;
+            try {
+                // 直接更新分享属性
+                var updateBody = {
+                    username: g('currentUser').username,
+                    token: g('currentUser').token,
+                    password: g('currentUser').password,
+                    share_id: existingShare.share_id,
+                    mode: mode,
+                    expire_days: expireDays
+                };
+                var updateUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api') + '/share/properties';
+                var updateResponse = await fetch(updateUrl, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) }, 
+                    body: JSON.stringify(updateBody) 
+                });
+                var updateResult = await global.parseJsonResponse(updateResponse);
+
+                if (updateResult.code === 200 && updateResult.data) {
+                    // 更新成功，显示结果
+                    showShareResult(updateResult.data, shareModal);
+                } else {
+                    shareContent.querySelector('#shareError').textContent = updateResult.message || '更新失败';
+                    shareContent.querySelector('#shareError').style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = '更新链接';
+                }
+            } catch (err) {
+                shareContent.querySelector('#shareError').textContent = err.message || '网络错误';
+                shareContent.querySelector('#shareError').style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = '更新链接';
+            }
+        };
+    }
+
+    function showCreateShareLink(filename, shareModal, shareContent, nightMode, bg, textColor) {
+        // 更新对话框内容为创建界面
+        shareContent.innerHTML = `
+            <h2 style="text-align:center;margin-bottom:15px;">分享文档</h2>
+            <p style="text-align:center;margin-bottom:20px;">文件: ${filename}</p>
+            <div style="margin-bottom:15px;">
+                <label>分享模式</label>
+                <div style="margin-top:8px;">
+                    <label><input type="radio" name="shareMode" value="view" checked> 仅查看</label> <label><input type="radio" name="shareMode" value="edit"> 允许编辑</label>
+                </div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>过期时间</label>
+                <select id="shareExpiry" style="width:100%;padding:8px;margin-top:5px;">
+                    <option value="7">7天后</option>
+                    <option value="30">30天后</option>
+                    <option value="0">永不过期</option>
+                </select>
+            </div>
+            <div id="shareError" style="color:#e74c3c;font-size:13px;margin-bottom:10px;display:none;"></div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="button" id="shareCancelBtn" style="flex:1;padding:10px;background:${nightMode ? '#555' : '#6c757d'};color:white;border:none;border-radius:6px;cursor:pointer;">取消</button>
+                <button type="button" id="shareCreateBtn" style="flex:2;padding:10px;background:#4a90e2;color:white;border:none;border-radius:6px;cursor:pointer;">创建分享链接</button>
+            </div>
+        `;
+
+        // 绑定按钮事件
+        shareContent.querySelector('#shareCancelBtn').onclick = function() { shareModal.remove(); };
+
+        shareContent.querySelector('#shareCreateBtn').onclick = async function() {
+            var btn = this;
+            btn.disabled = true;
+            btn.textContent = '创建中...';
+            var mode = shareContent.querySelector('input[name="shareMode"]:checked').value;
+            var expireDays = parseInt(shareContent.querySelector('#shareExpiry').value) || 7;
+            try {
+                var result = await createShareLink(filename, mode, null, expireDays);
+                if (result.code === 200 && result.data) {
+                    showShareResult(result.data, shareModal);
+                } else {
+                    shareContent.querySelector('#shareError').textContent = result.message || '创建失败';
+                    shareContent.querySelector('#shareError').style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = '创建分享链接';
+                }
+            } catch (err) {
+                shareContent.querySelector('#shareError').textContent = err.message || '网络错误';
+                shareContent.querySelector('#shareError').style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = '创建分享链接';
+            }
+        };
+    }
+
+    global.createShareLink = createShareLink;
+    global.showShareResult = showShareResult;
+    global.showShareDialog = showShareDialog;
+
+})(typeof window !== 'undefined' ? window : this);
