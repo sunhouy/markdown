@@ -116,7 +116,7 @@
         }
 
         try {
-            const apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php') + '?action=login';
+            const apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api') + '/auth/login';
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -182,7 +182,7 @@
             const requestBody = { username: username, password: password };
             if (inviteCode) requestBody.invite_code = inviteCode;
 
-            const apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php') + '?action=register';
+            const apiUrl = (global.getApiBaseUrl ? global.getApiBaseUrl() : 'api') + '/auth/register';
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

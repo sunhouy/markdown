@@ -83,9 +83,9 @@
         if (typeof window !== 'undefined' && window.location && window.location.origin) {
             var path = (window.location.pathname || '').replace(/\/[^/]*$/, '');
             var base = window.location.origin + path;
-            return base.replace(/\/?$/, '/') + 'api/index.php';
+            return base.replace(/\/?$/, '/') + 'api';
         }
-        return 'api/index.php';
+        return 'api';
     }
 
     /** 安全解析接口响应为 JSON，若返回 HTML 或非 JSON 则返回错误对象并附带详情便于排查 */

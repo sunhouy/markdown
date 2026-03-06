@@ -137,8 +137,8 @@ body.night-mode .mobile-bottom-bar {
     height: 36px; /* 固定高度 */
 }
 
-.bottom-btn i {
-    font-size: 28px; /* 图标调大 */
+.bottom-btn svg {
+    font-size: 18px; 
     margin-bottom: 2px;
 }
 
@@ -171,7 +171,7 @@ body.night-mode .bottom-btn:active {
     padding: 10px 0;
     min-width: 200px;
     z-index: 1003;
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
 }
 
@@ -197,7 +197,7 @@ body.night-mode .mobile-dropdown-content {
     transition: background 0.2s ease;
 }
 
-.dropdown-item i {
+.dropdown-item svg {
     margin-right: 12px;
     font-size: 18px;
     width: 24px;
@@ -635,10 +635,69 @@ body.night-mode .file-list-close:hover {
     margin: 0;
 }
 
-.file-item {
-    padding: 10px 12px;
+/* 文件夹样式 */
+.folder-item {
+    margin-bottom: 5px;
+}
+
+.folder-header {
+    padding: 8px 12px;
     border-radius: 6px;
-    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.folder-header:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+body.night-mode .folder-header:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.folder-icon {
+    margin-right: 8px;
+    color: #f7b731; /* 文件夹颜色 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+}
+
+.folder-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+}
+
+body.night-mode .folder-name {
+    color: #eee;
+}
+
+/* 文件夹内容（子文件列表） */
+.file-sublist {
+    display: none;
+    margin-top: 2px;
+}
+
+.file-sublist.show {
+    display: block;
+}
+
+/* 嵌套层级缩进 */
+/* 由于使用了 ul padding-left，这里不需要再为 item 单独设置 padding */
+/* 移除旧的 .folder-content 样式 */
+
+/* 文件项样式调整 */
+.file-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 2px;
     cursor: pointer;
     transition: background 0.2s ease;
     display: flex;
@@ -657,29 +716,54 @@ body.night-mode .file-item:hover {
 
 .file-item.active {
     background: #e3f2fd;
-    border-left: 3px solid #4a90e2;
+    /* border-left: 3px solid #4a90e2;  移除左侧边框 */ 
 }
 
 body.night-mode .file-item.active {
     background: #1e3a5f;
-    border-left: 3px solid #4a90e2;
+    /* border-left: 3px solid #4a90e2; */
+}
+
+.file-icon {
+    margin-right: 8px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+}
+
+.file-item.active .file-icon {
+    color: #4a90e2;
 }
 
 .file-name {
-    flex: 1 1 auto;          /* 允许增长和收缩 */
-    min-width: 0;            /* 允许内容收缩到比最小内容更小 */
+    flex: 1 1 auto;
+    min-width: 0;
     font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 8px;       /* 与按钮保持适当间距 */
+    margin-right: 8px;
 }
-
 
 .file-actions {
     display: flex;
-    gap: 2px;                /* 按钮间距缩小 */
-    flex-shrink: 0;          /* 禁止按钮被压缩 */
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0; /* 默认隐藏操作按钮 */
+    transition: opacity 0.2s;
+}
+
+.file-item:hover .file-actions {
+    opacity: 1; /* 悬停时显示 */
+}
+
+/* 移动端始终显示 */
+@media (max-width: 768px) {
+    .file-actions {
+        opacity: 1;
+    }
 }
 
 .file-action-btn {
@@ -687,23 +771,22 @@ body.night-mode .file-item.active {
     border: none;
     color: #999;
     cursor: pointer;
-    font-size: 12px;         /* 可保持原大小或稍小 */
-    padding: 2px 4px;        /* 水平内边距减小 */
+    font-size: 12px;
+    padding: 4px;
     border-radius: 3px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
 }
 
 .file-action-btn:hover {
     color: #333;
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 body.night-mode .file-action-btn:hover {
     color: #eee;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .file-list-actions {
@@ -726,11 +809,16 @@ body.night-mode .file-list-actions {
     cursor: pointer;
     font-size: 14px;
     transition: background 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .add-file-btn:hover {
     background: #3a7bc8;
 }
+
 
 /* 冲突解决模态框样式 */
 .conflict-modal {
@@ -1153,7 +1241,7 @@ body.night-mode .custom-fullscreen-btn {
     align-items: center;
 }
 
-.history-info i {
+.history-info svg {
     margin-right: 8px;
     color: #4a90e2;
 }
@@ -1503,7 +1591,7 @@ body.night-mode .editor-container {
     background: #c82333 !important;
 }
 
-.delete-history-btn i {
+.delete-history-btn svg {
     font-size: 11px;
 }
 
@@ -1535,8 +1623,8 @@ body.night-mode .editor-container {
     background: #3a7bc8 !important;
 }
 
-.preview-btn i,
-.restore-btn i {
+.preview-btn svg,
+.restore-btn svg {
     font-size: 11px;
 }
 

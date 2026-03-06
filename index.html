@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Markdown编辑器</title>
     <link rel="icon" type="image/x-icon" href="icon.png">
-    <script src="css/fontawesome/js/all.min.js"></script>
-    <link rel="stylesheet" href="css/styles.css" />
-    <link rel="stylesheet" href="vditor@3.11.2/dist/index.css" />
 </head>
 
 <body>
@@ -167,6 +164,7 @@
                 <button class="dropdown-item" id="mobileExportBtn"><i class="fas fa-file-export"></i>  导出</button>
                 <button class="dropdown-item" id="mobileClearBtn"><i class="fas fa-trash-alt"></i>  清空</button>
                 <button class="dropdown-item" id="mobileHelpBtn"><i class="fas fa-question-circle"></i>  帮助</button>
+                <button class="dropdown-item" id="aboutBtn"><i class="fas fa-info-circle"></i>  关于</button>
             </div>
         </div>
     </div>
@@ -215,14 +213,7 @@
 </div>
 
 
-<script src="vditor@3.11.2/dist/index.min.js"></script>
-<!-- <script src="js/html-to-image.min.js"></script>
--->
-<script src="js/utils.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/files.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
+<script type="module" src="/entry.js"></script>
 
 <script>
     // 处理分享链接
@@ -249,7 +240,7 @@
     async function handleShareLink(shareId, password) {
         try {
             // 从API获取分享的文档内容
-            const response = await fetch('api/index.php?action=get_share', {
+            const response = await fetch('api/share/get', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -295,7 +286,7 @@
                 showToast('获取分享内容失败: ' + (result.message || '未知错误'), 'error');
                 // 重定向到密码页面或错误页面
                 if (result.code === 401) {
-                    window.location.href = 'api/index.php?action=view_share&share_id=' + shareId;
+                    window.location.href = 'api/share/view?share_id=' + shareId;
                 }
             }
         } catch (error) {

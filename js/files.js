@@ -100,15 +100,51 @@
         if (!g('currentUser')) return;
         try {
             global.showSyncStatus('正在从服务器加载文件...');
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            const response = await fetch(api + '?action=getfiles&username=' + encodeURIComponent(g('currentUser').username));
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            const response = await fetch(api + '/files?username=' + encodeURIComponent(g('currentUser').username), {
+                headers: { 'Authorization': 'Bearer ' + g('currentUser').token }
+            });
             const result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             if (result.code === 200 && result.data && result.data.files) {
                 // 对服务器返回的文件名进行标准化（去除开头的 /）
-                let serverFiles = result.data.files.map(f => ({
-                    ...f,
-                    name: f.name.startsWith('/') ? f.name.substring(1) : f.name
-                }));
+                let serverFiles = result.data.files.map(f => {
+                    let type = 'file';
+                    let content = f.content;
+                    // 检查是否为文件夹标记
+                    if (content === '{"meta":"folder"}' || content === '{"type":"folder"}') {
+                        type = 'folder';
+                        content = '';
+                    }
+                    return {
+                        ...f,
+                        name: f.name.startsWith('/') ? f.name.substring(1) : f.name,
+                        type: type,
+                        content: content
+                    };
+                });
+
+                // 第二遍扫描：如果一个项是其他项的父级，强制将其设为文件夹
+                const folderPaths = new Set();
+                serverFiles.forEach(f => {
+                    const parts = f.name.split('/');
+                    if (parts.length > 1) {
+                        // 记录所有父路径
+                        let current = '';
+                        for (let i = 0; i < parts.length - 1; i++) {
+                            current = current ? current + '/' + parts[i] : parts[i];
+                            folderPaths.add(current);
+                        }
+                    }
+                });
+                
+                serverFiles.forEach(f => {
+                    if (folderPaths.has(f.name)) {
+                        f.type = 'folder';
+                        // 如果是隐式文件夹，内容强制为空（忽略可能的错误内容）
+                        if (f.content !== '{"meta":"folder"}') f.content = '';
+                    }
+                });
+
                 const localFiles = JSON.parse(localStorage.getItem('vditor_files') || '[]');
                 // 迁移：给本地文件增加type字段，默认为file
                 localFiles.forEach(f => { if (!f.type) f.type = 'file'; });
@@ -335,48 +371,82 @@
             const isFolder = node.type === 'folder' || node.children.length > 0;
             const icon = isFolder ? '<i class="fas fa-folder"></i>' : '<i class="fas fa-file"></i>';
             const hasChildren = node.children.length > 0;
-            const toggleIcon = hasChildren ? '<span class="folder-toggle"><i class="fas fa-chevron-right"></i></span>' : '';
-            const syncIcon = node.type === 'file' && node.isSynced === false ? '<i class="fas fa-exclamation-circle" style="color: #ff9800; margin-right: 5px;" title="未同步到服务器"></i>' : '';
-
+            const toggleIcon = ''; // 移除箭头图标
+            const syncIcon = node.type === 'file' && node.isSynced === false ?
+                '<i class="fas fa-exclamation-circle" style="color: #ff9800; margin-right:5px;" title="未同步到服务器"></i>' : '';
             let actions = '';
             if (node.id) {
                 if (node.type === 'file') {
-                    actions = `
-                        <button class="file-action-btn history-file" data-id="${node.id}" data-name="${node.name}" title="历史版本"><i class="fas fa-history"></i></button>
-                        <button class="file-action-btn rename-file" data-id="${node.id}" title="重命名"><i class="fas fa-edit"></i></button>
-                        <button class="file-action-btn move-file" data-id="${node.id}" title="移动"><i class="fas fa-arrows-alt"></i></button>
-                        <button class="file-action-btn delete-file" data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>
-                    `;
+                    actions = `                                                
+                         <button class="file-action-btn history-file"           
+ data-id="${node.id}" data-name="${node.name}" title="历史版本"><i class="fas   
+ fa-history"></i></button>                                                      
+                         <button class="file-action-btn rename-file"            
+ data-id="${node.id}" title="重命名"><i class="fas fa-edit"></i></button>       
+                         <button class="file-action-btn move-file"              
+ data-id="${node.id}" title="移动"><i class="fas fa-arrows-alt"></i></button>   
+                         <button class="file-action-btn delete-file"            
+ data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>        
+                     `;
                 } else {
-                    actions = `
-                        <button class="file-action-btn rename-file" data-id="${node.id}" title="重命名"><i class="fas fa-edit"></i></button>
-                        <button class="file-action-btn move-file" data-id="${node.id}" title="移动"><i class="fas fa-arrows-alt"></i></button>
-                        <button class="file-action-btn delete-file" data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>
-                    `;
+                    actions = `                                                
+                         <button class="file-action-btn rename-file"            
+ data-id="${node.id}" title="重命名"><i class="fas fa-edit"></i></button>       
+                         <button class="file-action-btn move-file"              
+ data-id="${node.id}" title="移动"><i class="fas fa-arrows-alt"></i></button>   
+                         <button class="file-action-btn delete-file"            
+ data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>        
+                     `;
                 }
             }
+            html += `<li class="file-item ${node.id === g('currentFileId') ?
+                'active' : ''}" data-id="${node.id || ''}" data-type="${node.type}"            
+ style="list-style:none;">`;
 
-            html += `<li class="file-item ${node.id === g('currentFileId') ? 'active' : ''}" data-id="${node.id || ''}" data-type="${node.type}">`;
-            html += `<div class="file-header" style="padding-left: ${level*20}px">`;
+            // 移除原来用 level*20 计算 padding-left 的做法，仅保留微小间距
+            html += `<div class="file-header" style="display:flex;             
+ align-items:center; padding: 6px 4px;">`;
             html += toggleIcon;
-            html += `<span class="file-name" title="${node.name}">${icon} ${syncIcon} ${node.basename}</span>`;
+            html += `<span class="file-name" title="${node.name}"              
+ style="flex:1; margin-left:5px; white-space:nowrap; overflow:hidden;           
+ text-overflow:ellipsis;">${icon} ${syncIcon} ${node.basename}</span>`;
             html += `<div class="file-actions">${actions}</div>`;
             html += `</div>`;
+
             if (hasChildren) {
-                html += `<ul class="file-sublist" style="display:none; list-style:none; padding-left:0;">${renderTree(node.children, level+1)}</ul>`;
+                // 子级向下展开，直接在这里加左边框/左边距，而不是让每行 header 无限向右偏移
+                html += `<ul class="file-sublist" style="display:none; list-style:none; padding-left: 0; margin: 0; border-left: none !important;">${renderTree(node.children, level+1)}</ul>`;
             }
             html += `</li>`;
         });
         return html;
     }
 
+    function expandActiveFile() {
+        const currentFileId = g('currentFileId');
+        if (!currentFileId) return;
+        
+        // Find the file item in the DOM
+        const fileItem = document.querySelector(`.file-item[data-id="${currentFileId}"]`);
+        if (!fileItem) return;
+
+        // Traverse up to find all parent file-sublist lists
+        let parent = fileItem.parentElement;
+        while (parent && (parent.classList.contains('file-sublist') || parent.tagName === 'LI')) {
+            if (parent.classList.contains('file-sublist')) {
+                parent.style.display = 'block';
+            }
+            parent = parent.parentElement;
+        }
+    }
+
     function toggleFolder(item) {
-        // console.log('toggleFolder called', item);
-        const sublist = item.querySelector('.file-sublist');
+        const sublist = item.querySelector(':scope > .file-sublist'); // 只找直接子级
         if (!sublist) return;
         const isHidden = sublist.style.display === 'none';
-        sublist.style.display = isHidden ? '' : 'none';
-        const icon = item.querySelector('.folder-toggle i');
+        sublist.style.display = isHidden ? 'block' : 'none'; // 使用 block 正常向下撑开
+
+        const icon = item.querySelector(':scope > .file-header .folder-toggle svg');
         if (icon) {
             icon.classList.toggle('fa-chevron-right', !isHidden);
             icon.classList.toggle('fa-chevron-down', isHidden);
@@ -391,8 +461,10 @@
 
         const tree = buildTree(files);
         fileList.innerHTML = renderTree(tree, 0);
+        
+        // 自动展开到当前文件
+        expandActiveFile();
 
-        // ================ 关键修复：事件只绑定一次 ================
         if (!fileList._treeEventsBound) {
             fileList._treeEventsBound = true;
             fileList.addEventListener('click', function(e) {
@@ -440,13 +512,13 @@
         const item = files.find(f => f.id === id);
         if (!item) return;
 
-        // 获取所有文件夹路径（包括根目录）
-        const folders = files.filter(f => f.type === 'folder').map(f => f.name);
-        folders.unshift(''); // 根目录
+        // 动态获取当前所有可用的文件夹路径（包括没有显式建文件夹记录的虚拟路径）
+        const folders = getAllFolderPaths();
 
-        let options = '此功能正在开发，请暂时不要使用！！！\n请选择目标文件夹（输入序号）：\n';
-        folders.forEach((f, idx) => options += `${idx+1}. ${f === '' ? '/' : f}\n`);
-        const choice = prompt(options + '输入数字：');
+        let options = '请选择目标文件夹（输入序号）：\n';
+        folders.forEach((f, idx) => options += `${idx + 1}. ${f === '' ? '/' :
+            f}\n`);
+        const choice = prompt(options + '\n输入数字：');
         if (!choice) return;
 
         const idx = parseInt(choice) - 1;
@@ -454,11 +526,19 @@
             alert('选择无效');
             return;
         }
-        const targetPath = folders[idx];
 
+        const targetPath = folders[idx];
         const oldName = item.name;
         const newBasename = getBasename(oldName);
-        const newName = targetPath ? targetPath + '/' + newBasename : newBasename;
+        const newName = targetPath ? targetPath + '/' + newBasename :
+            newBasename;
+
+        // 防止移动到自己或自己的子目录中
+        if (item.type === 'folder' && (newName === oldName ||
+            newName.startsWith(oldName + '/'))) {
+            alert('不能将文件夹移动到自身或其子目录中');
+            return;
+        }
 
         if (files.some(f => f.name === newName && f.id !== id)) {
             alert('目标文件夹下已存在同名项');
@@ -470,18 +550,26 @@
         } else {
             item.name = newName;
         }
-
         item.lastModified = Date.now();
         item.isSynced = false;
+
         localStorage.setItem('vditor_files', JSON.stringify(files));
         loadFiles();
-        global.showMessage(`${item.type === 'folder' ? '文件夹' : '文件'}已移动`);
+        global.showMessage(`${item.type === 'folder' ? '文件夹' :
+            '文件'}已移动`);
+
         if (g('currentUser')) {
             if (item.type === 'folder') {
-                const affectedFiles = files.filter(f => f.type === 'file' && (f.name.startsWith(newName + '/') || f.name === newName));
-                affectedFiles.forEach(f => global.syncFileToServer(f.id));
+                const affectedFiles = files.filter(f => f.type === 'file' &&
+                    (f.name.startsWith(newName + '/') || f.name === newName));
+                affectedFiles.forEach(f => {
+                    global.deleteFileFromServer(oldName +
+                        f.name.substring(newName.length)).catch(e=>{});
+                    global.syncFileToServer(f.id);
+                });
             } else {
-                global.deleteFileFromServer(oldName).then(() => global.syncFileToServer(id));
+                global.deleteFileFromServer(oldName).then(() =>
+                    global.syncFileToServer(item.id));
             }
         }
     }
@@ -546,7 +634,7 @@
     }
 
     function createNewFile() {
-        const input = prompt('请输入文件名（可包含路径，例如 docs/notes/new）', '新文档');
+        const input = prompt('请输入文件名（可包含路径，例如 docs/note）\n注意：请暂时不要使用嵌套文件夹，这个功能正在开发', '新文档');
         if (!input) return;
 
         let path = normalizePath(input);
@@ -703,11 +791,11 @@
     async function createHistoryVersion(filename, content) {
         if (!g('currentUser')) return false;
         try {
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            const response = await fetch(api + '?action=create_history', {
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            const response = await fetch(api + '/files/history/create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': g('currentUser').token || g('currentUser').username },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: filename, content: content, timestamp: Date.now() })
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) },
+                body: JSON.stringify({ username: g('currentUser').username, filename: filename, content: content, timestamp: Date.now() })
             });
             const result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             return result.code === 200;
@@ -717,11 +805,10 @@
     async function getFileHistory(filename) {
         if (!g('currentUser')) return [];
         try {
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            const response = await fetch(api + '?action=get_history', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: filename })
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            const response = await fetch(api + '/files/history/list?username=' + encodeURIComponent(g('currentUser').username) + '&filename=' + encodeURIComponent(filename), {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) }
             });
             const result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             return (result.code === 200 && result.data && result.data.history) ? result.data.history : [];
@@ -812,13 +899,20 @@
         const files = g('files');
         const file = files.find(function(f) { return f.id === fileId; });
         if (!file) return;
-        const content = file.type === 'file' ? (g('vditor') && file.id === g('currentFileId') ? g('vditor').getValue() : file.content) : '';
+        
+        let content = '';
+        if (file.type === 'folder') {
+            content = '{"meta":"folder"}';
+        } else {
+            content = (g('vditor') && file.id === g('currentFileId') ? g('vditor').getValue() : file.content);
+        }
+
         try {
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            const response = await fetch(api + '?action=save', {
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            const response = await fetch(api + '/files/save', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': g('currentUser').token || g('currentUser').username },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: file.name, content: content })
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) },
+                body: JSON.stringify({ username: g('currentUser').username, filename: file.name, content: content })
             });
             const result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             if (result.code === 200) {
@@ -827,7 +921,7 @@
                     files[fileIndex].isSynced = true;
                     files[fileIndex].lastModified = Date.now();
                     localStorage.setItem('vditor_files', JSON.stringify(files));
-                    g('lastSyncedContent')[fileId] = content;
+                    g('lastSyncedContent')[fileId] = file.type === 'folder' ? '' : content;
                     g('unsavedChanges')[fileId] = false;
                 }
                 return true;
@@ -842,11 +936,11 @@
     async function deleteFileFromServer(filename) {
         if (!g('currentUser')) return;
         try {
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            const response = await fetch(api + '?action=delete', {
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            const response = await fetch(api + '/files/delete', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': g('currentUser').token || g('currentUser').username },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: filename })
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) },
+                body: JSON.stringify({ username: g('currentUser').username, filename: filename })
             });
             const text = await response.text();
             if (!response.ok) throw new Error('HTTP ' + response.status + ': 删除失败');
@@ -911,11 +1005,11 @@
     async function restoreHistoryVersion(filename, versionId, content) {
         if (!g('currentUser')) return false;
         try {
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            var response = await fetch(api + '?action=restore_history', {
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            var response = await fetch(api + '/files/history/restore', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': g('currentUser').token || g('currentUser').username },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: filename, version_id: versionId, content: content, timestamp: Date.now() })
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) },
+                body: JSON.stringify({ username: g('currentUser').username, filename: filename, version_id: versionId })
             });
             var result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             return result.code === 200;
@@ -975,11 +1069,11 @@
     async function deleteHistoryVersionAPI(filename, versionId) {
         if (!g('currentUser')) return false;
         try {
-            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api/index.php';
-            var response = await fetch(api + '?action=delete_history', {
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            var response = await fetch(api + '/files/history/delete', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: g('currentUser').username, password: g('currentUser').password, filename: filename, version_id: versionId })
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (g('currentUser').token || g('currentUser').username) },
+                body: JSON.stringify({ username: g('currentUser').username, filename: filename, version_id: versionId })
             });
             var result = global.parseJsonResponse ? await global.parseJsonResponse(response) : await response.json();
             return result.code === 200;
@@ -1135,10 +1229,11 @@
         });
     }
 
-    // 导出到 global
+    // 导出函数到全局对象
     global.loadFilesFromServer = loadFilesFromServer;
     global.loadLocalFiles = loadLocalFiles;
     global.loadFiles = loadFiles;
+    global.expandActiveFile = expandActiveFile;
     global.renameFile = renameFile;
     global.createDefaultFile = createDefaultFile;
     global.createNewFile = createNewFile;
@@ -1162,3 +1257,4 @@
     global.moveFile = moveFile;
 
 })(typeof window !== 'undefined' ? window : this);
+

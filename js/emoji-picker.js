@@ -234,10 +234,16 @@ function showEmojiPicker() {
     }
 
     // 添加键盘事件支持
-    document.addEventListener('keydown', function handleKeydown(e) {
+    function handleKeydown(e) {
         if (e.key === 'Escape') {
             closeEmojiPicker();
             document.removeEventListener('keydown', handleKeydown);
         }
-    });
+    }
+    document.addEventListener('keydown', handleKeydown);
+}
+
+// 导出函数到全局对象
+if (typeof window !== 'undefined') {
+    window.showEmojiPicker = showEmojiPicker;
 }
