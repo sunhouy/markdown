@@ -384,8 +384,6 @@ class HistoryManager {
         // But let's stick to safe approach.
         const connection = await db.getConnection();
         try {
-             // In PHP: DELETE c FROM file_content c JOIN file_history h ...
-             // Node:
              await connection.execute(`
                 DELETE c FROM file_content c
                 JOIN file_history h ON c.history_id = h.id

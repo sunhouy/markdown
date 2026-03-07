@@ -20,7 +20,6 @@ class ApiManager {
         const encryptedBase64 = encryptedBuffer.toString('base64');
         
         // Combine IV (raw) and Encrypted Data (base64 string)
-        // PHP: base64_encode($iv . $encrypted)
         const combined = Buffer.concat([iv, Buffer.from(encryptedBase64, 'utf8')]);
         
         return combined.toString('base64');

@@ -1,7 +1,7 @@
 # markdown
 [![Build and Deploy](https://github.com/sunhouy/markdown/actions/workflows/deploy.yml/badge.svg)](https://github.com/sunhouy/markdown/actions/workflows/deploy.yml)
 
-基于Vditor的移动端轻量化在线markdown编辑器，可进行多文件管理。支持可视化插入格式、公式、图表，上传文件和图片，降低学习和操作门槛；支持多端文件同步，历史版本，文件分享，日间、夜间模式切换，导入本地文件，导出文档，云打印功能
+完全免费且开源的移动端轻量级在线 Markdown 编辑器，基于 Vditor 构建，支持多文件管理。提供可视化的格式插入方式，支持图片和文件上传、LaTeX 公式引用、Mermaid 图表绘制，降低学习与操作门槛。同时，编辑器还支持多端文件同步、文件夹创建、历史版本管理、文件分享，以及日间/夜间模式切换。提供三种编辑模式（所见即所得 / 及时渲染 / 分屏预览），并支持文档的导入、导出和文件云打印功能
 
 项目采用JavaScript+Python架构，登录注册、文件上传、分享、历史版本等后端使用node实现，云打印服务端和客户端使用Python实现。
 ### 使用

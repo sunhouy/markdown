@@ -7,7 +7,9 @@ db.sql
 node_modules/
 dist/
 build/
+uploads/
 
+js/ui.js.bak
 *.tmp
 *.temp
 *.tgz
