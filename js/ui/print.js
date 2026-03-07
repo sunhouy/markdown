@@ -4,6 +4,102 @@
 
     function g(name) { return global[name]; }
 
+    function showDownloadClientModal() {
+        var nightMode = g('nightMode') === true;
+        var modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10005;';
+
+        var bg = nightMode ? '#2d2d2d' : 'white';
+        var textColor = nightMode ? '#eee' : '#333';
+        var borderColor = nightMode ? '#444' : '#ddd';
+        
+        var content = document.createElement('div');
+        content.style.cssText = 'background:' + bg + ';color:' + textColor + ';border-radius:12px;padding:25px;width:90%;max-width:500px;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+
+        var closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        closeBtn.style.cssText = 'position:absolute;top:15px;right:15px;background:none;border:none;color:' + textColor + ';font-size:18px;cursor:pointer;opacity:0.7;padding:5px;';
+        closeBtn.onclick = function() { modal.remove(); };
+        content.appendChild(closeBtn);
+
+        var title = document.createElement('h3');
+        title.textContent = '下载打印客户端';
+        title.style.cssText = 'margin-top:0;margin-bottom:20px;text-align:center;font-size:18px;';
+        content.appendChild(title);
+
+        var ua = navigator.userAgent;
+        var isWin = ua.indexOf('Win') !== -1;
+        var isMac = ua.indexOf('Mac') !== -1;
+        var isLinux = ua.indexOf('Linux') !== -1 && ua.indexOf('Android') === -1;
+
+        // Fallback if none detected or specific override needed
+        if (!isWin && !isMac && !isLinux) {
+            isWin = true; // Default to Windows recommendation
+        }
+
+        function createSection(osName, isRecommended, links) {
+            var section = document.createElement('div');
+            var recStyle = isRecommended ? 'border:2px solid #2196F3;background:' + (nightMode ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.05)') : 'border:1px solid ' + borderColor;
+            section.style.cssText = 'margin-bottom:15px;padding:15px;border-radius:8px;' + recStyle + ';transition:all 0.2s;';
+            
+            var headerHtml = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+                '<span style="font-weight:bold;font-size:16px;">' + osName + '</span>' + 
+                (isRecommended ? '<span style="font-size:12px;background:#2196F3;color:white;padding:2px 8px;border-radius:4px;">推荐 (当前系统)</span>' : '') +
+                '</div>';
+            
+            var linksHtml = '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
+            links.forEach(function(link) {
+                var btnBg = nightMode ? '#444' : '#f0f0f0';
+                var btnHover = nightMode ? '#555' : '#e0e0e0';
+                linksHtml += `<a href="${link.url}" target="_blank" class="download-link-btn" style="display:flex;align-items:center;padding:8px 12px;background:${btnBg};color:${textColor};text-decoration:none;border-radius:4px;font-size:14px;transition:background 0.2s;" onmouseover="this.style.background='${btnHover}'" onmouseout="this.style.background='${btnBg}'">` +
+                    `<i class="fas fa-download" style="margin-right:6px;"></i>${link.name}</a>`;
+            });
+            linksHtml += '</div>';
+
+            section.innerHTML = headerHtml + linksHtml;
+            return section;
+        }
+
+        // Order based on recommendation
+        var sections = [];
+        
+        var winSection = createSection('Windows', isWin, [
+            { name: '.exe', url: 'https://static.yhsun.cn/print_client.exe' }
+        ]);
+        
+        var linuxSection = createSection('Linux', isLinux, [
+            { name: '.deb', url: 'https://static.yhsun.cn/print_client.deb' },
+            { name: '.rpm', url: 'https://static.yhsun.cn/print_client.rpm' },
+            { name: '.tar.gz', url: 'https://static.yhsun.cn/print_client.tar.gz' }
+        ]);
+        
+        var macSection = createSection('macOS', isMac, [
+            { name: 'print_client.dmg', url: 'https://static.yhsun.cn/print_client.dmg' }
+        ]);
+
+        if (isWin) {
+            content.appendChild(winSection);
+            content.appendChild(macSection);
+            content.appendChild(linuxSection);
+        } else if (isMac) {
+            content.appendChild(macSection);
+            content.appendChild(winSection);
+            content.appendChild(linuxSection);
+        } else {
+            content.appendChild(linuxSection);
+            content.appendChild(winSection);
+            content.appendChild(macSection);
+        }
+
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
     function showPrintDialog() {
         // 检查用户是否登录
         if (!g('currentUser')) {
@@ -41,34 +137,7 @@
             </div>
         `;
 
-        // 检测操作系统并返回对应的下载信息
-        function getDownloadInfo() {
-            var ua = navigator.userAgent;
-            if (ua.indexOf('Win') !== -1) {
-                return {
-                    file: 'print_client.exe',
-                    text: '点击下载打印客户端 (Windows)'
-                };
-            } else if (ua.indexOf('Linux') !== -1 && ua.indexOf('Android') === -1) {
-                return {
-                    file: 'print_client.tar.gz',
-                    text: '点击下载打印客户端 (Linux)'
-                };
-            } else if (ua.indexOf('Mac') !== -1) {
-                return {
-                    file: 'print_client.exe',
-                    text: '暂不支持macos系统，点击下载windows版本'
-                };
-            } else {
-                return {
-                    file: 'print_client.exe',
-                    text: '点击下载打印客户端 (Windows版本)'
-                };
-            }
-        }
-
-        var downloadInfo = getDownloadInfo();
-        var downloadLink = '<a href="' + downloadInfo.file + '" target="_blank" style="color:#4a90e2;">' + downloadInfo.text + '</a>';
+        var downloadLink = '<a href="javascript:void(0)" id="downloadClientBtn" style="color:#4a90e2;cursor:pointer;text-decoration:underline;">点击下载打印客户端</a>';
 
         // 客户端连接状态区域
         var statusSection = `
@@ -182,6 +251,14 @@
         modalContent.innerHTML = title + aiSection + statusSection + settingsSection + actionButtons;
         printModal.appendChild(modalContent);
         document.body.appendChild(printModal);
+
+        // Download client button event
+        var downloadClientBtn = modalContent.querySelector('#downloadClientBtn');
+        if (downloadClientBtn) {
+            downloadClientBtn.onclick = function() {
+                showDownloadClientModal();
+            };
+        }
 
         // 连接到打印服务器检查客户端状态
         var statusIndicator = modalContent.querySelector('#statusIndicator');
@@ -1654,63 +1731,10 @@
                     <div id="statusIndicator" style="width:12px;height:12px;border-radius:50%;background:#dc3545;"></div>
                     <span id="statusText" style="font-size:14px;">请连接打印客户端</span>
                 </div>
-                <p style="margin-top:10px;font-size:14px;" id="download-container">
-  <a href="#" target="_blank" style="color:#4a90e2;" id="download-link">正在检测操作系统...</a>
-</p>
-
-<script>
-(function() {
-  // 定义暗色模式变量（如果项目中已定义，可省略）
-  const nightMode = false; // 或根据实际逻辑设置
-
-  // 获取链接元素
-  const link = document.getElementById('download-link');
-  const container = document.getElementById('download-container');
-
-  // 检测操作系统
-  const userAgent = navigator.userAgent || navigator.platform;
-  let os = 'windows'; // 默认 Windows
-
-  if (userAgent.indexOf('Win') !== -1) {
-    os = 'windows';
-  } else if (userAgent.indexOf('Linux') !== -1 && userAgent.indexOf('Android') === -1) {
-    // 排除 Android 设备（如果也想支持 Android，可单独处理）
-    os = 'linux';
-  } else if (userAgent.indexOf('Mac') !== -1) {
-    // macOS 可以提示或提供通用版本，这里仍给 Windows 版本或显示不支持
-    os = 'mac'; // 可自定义处理
-  }
-
-  // 根据操作系统设置下载链接
-  let downloadUrl = '';
-  let linkText = '';
-
-  switch (os) {
-    case 'windows':
-      downloadUrl = 'print_client.exe';
-      linkText = '点击下载 Windows 客户端';
-      break;
-    case 'linux':
-      downloadUrl = 'print_client.tar.gz';
-      linkText = '点击下载 Linux 客户端';
-      break;
-    default:
-      // macOS 或其他系统，默认提供 Windows 版本并提示
-      downloadUrl = 'print_client.exe';
-      linkText = '点击下载客户端 (Windows 版本，您的系统可能不兼容)';
-      break;
-  }
-
-  // 更新链接
-  link.href = downloadUrl;
-  link.textContent = linkText;
-  link.target = '_blank';
-
-  // 应用夜间模式样式（保留原逻辑）
-  container.style.color = nightMode ? '#aaa' : '#666';
-})();
-</script>
-                </div>
+                <p style="margin-top:10px;font-size:14px;">
+                    <a href="javascript:void(0)" id="fileDownloadClientBtn" style="color:#4a90e2;cursor:pointer;text-decoration:underline;">点击下载打印客户端</a>
+                </p>
+            </div>
         `;
 
         // 文件上传区域
@@ -1737,6 +1761,14 @@
         modalContent.innerHTML = title + statusSection + fileUploadSection + actionButtons;
         printModal.appendChild(modalContent);
         document.body.appendChild(printModal);
+
+        // Download client button event
+        var fileDownloadClientBtn = modalContent.querySelector('#fileDownloadClientBtn');
+        if (fileDownloadClientBtn) {
+            fileDownloadClientBtn.onclick = function() {
+                showDownloadClientModal();
+            };
+        }
 
         // 连接到打印服务器检查客户端状态
         var statusIndicator = modalContent.querySelector('#statusIndicator');

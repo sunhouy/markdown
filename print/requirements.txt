@@ -1,0 +1,4 @@
+websockets
+pdfkit
+Pillow
+pywin32; sys_platform == 'win32'

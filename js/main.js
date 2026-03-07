@@ -154,6 +154,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (fileListClose) fileListClose.addEventListener('click', function() { document.getElementById('fileListSidebar').classList.remove('show'); });
         var addFileBtn = document.getElementById('addFileBtn');
         if (addFileBtn) addFileBtn.addEventListener('click', window.createNewFile);
+        var addFolderBtn = document.getElementById('addFolderBtn');
+        if (addFolderBtn) addFolderBtn.addEventListener('click', window.createNewFolder);
         var mobileFileBtn = document.getElementById('mobileFileBtn');
         if (mobileFileBtn) mobileFileBtn.addEventListener('click', function() { document.getElementById('fileListSidebar').classList.toggle('show'); });
     }

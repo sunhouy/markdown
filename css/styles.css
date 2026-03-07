@@ -827,6 +827,15 @@ body.night-mode .file-list-actions {
     background: #3a7bc8;
 }
 
+.add-file-btn.folder {
+    background: #f7b731;
+    margin-top: 10px;
+}
+
+.add-file-btn.folder:hover {
+    background: #e1a325;
+}
+
 
 /* 冲突解决模态框样式 */
 .conflict-modal {
@@ -1077,7 +1086,7 @@ body.night-mode .vditor-toolbar__item:hover {
 /* 上传状态提示 */
 .upload-status {
     position: fixed;
-    bottom: 20px;
+    bottom: 80px;
     right: 20px;
     background: rgba(0, 0, 0, 0.8);
     color: white;

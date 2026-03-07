@@ -9,6 +9,7 @@ import traceback
 import websockets
 import json
 import os
+import sys
 import platform
 import configparser
 import subprocess
@@ -16,59 +17,165 @@ import ssl
 import pdfkit
 import urllib.request
 import tempfile
-import os
-
 from datetime import datetime
 
-# 尝试导入pdfkit并配置
+# Windows specific imports
+if platform.system() == 'Windows':
+    try:
+        import win32print
+        import win32ui
+        import win32con
+        import win32api
+        from PIL import Image, ImageWin
+    except ImportError:
+        print("警告: 未安装pywin32或Pillow库，Windows打印功能可能受限")
+
+# Global configuration for pdfkit
 pdfkit_available = False
 wkhtmltopdf_config = None
-try:
-    # 尝试设置wkhtmltopdf路径
-    try:
-        # 检查系统PATH中的wkhtmltopdf
-        wkhtmltopdf_path = None
-        try:
-            # 尝试使用where命令查找wkhtmltopdf
-            result = subprocess.run(['where', 'wkhtmltopdf'], capture_output=True, text=True, shell=True)
-            if result.returncode == 0 and result.stdout.strip():
-                wkhtmltopdf_path = result.stdout.strip().split('\n')[0]
-                print(f"从系统PATH中找到wkhtmltopdf: {wkhtmltopdf_path}")
-        except:
-            pass
 
-        # 如果PATH中没有，检查常见的安装路径
-        if not wkhtmltopdf_path:
-            # 检查常见路径
+def check_wkhtmltopdf():
+    """检查wkhtmltopdf是否安装，如果没有则提示用户下载"""
+    global pdfkit_available, wkhtmltopdf_config
+    
+    wkhtmltopdf_path = None
+    system = platform.system()
+    
+    print("正在检查 wkhtmltopdf...")
+    
+    # 1. Check system PATH
+    try:
+        cmd = ['where', 'wkhtmltopdf'] if system == 'Windows' else ['which', 'wkhtmltopdf']
+        result = subprocess.run(cmd, capture_output=True, text=True, shell=(system == 'Windows'))
+        if result.returncode == 0 and result.stdout.strip():
+            wkhtmltopdf_path = result.stdout.strip().split('\n')[0]
+            print(f"从系统PATH中找到wkhtmltopdf: {wkhtmltopdf_path}")
+    except Exception as e:
+        print(f"检查PATH失败: {e}")
+
+    # 2. Check common paths if not found in PATH
+    if not wkhtmltopdf_path:
+        common_paths = []
+        if system == 'Windows':
             common_paths = [
                 r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe',
                 r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe',
                 r'C:\wkhtmltopdf\bin\wkhtmltopdf.exe',
             ]
+        elif system == 'Darwin':
+            common_paths = [
+                '/usr/local/bin/wkhtmltopdf',
+                '/opt/homebrew/bin/wkhtmltopdf',
+            ]
+        elif system == 'Linux':
+            common_paths = [
+                '/usr/bin/wkhtmltopdf',
+                '/usr/local/bin/wkhtmltopdf',
+            ]
+            
+        for path in common_paths:
+            if os.path.exists(path):
+                wkhtmltopdf_path = path
+                print(f"在常见路径找到wkhtmltopdf: {wkhtmltopdf_path}")
+                break
 
-            for path in common_paths:
-                if os.path.exists(path):
-                    wkhtmltopdf_path = path
-                    break
-
-        if wkhtmltopdf_path:
+    if wkhtmltopdf_path:
+        try:
             wkhtmltopdf_config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
-            print(f"pdfkit库已成功导入，使用wkhtmltopdf路径: {wkhtmltopdf_path}")
+            print(f"pdfkit已配置: {wkhtmltopdf_path}")
             pdfkit_available = True
-        else:
-            print("警告: 未找到wkhtmltopdf可执行文件，将使用备用打印方法")
-    except Exception as e:
-        print(f"配置pdfkit失败: {e}")
-except ImportError:
-    print("警告: pdfkit库未安装，将使用备用打印方法")
+            return True
+        except Exception as e:
+            print(f"配置pdfkit失败: {e}")
+            return False
+    else:
+        print("\n" + "!"*50)
+        print("错误: 未找到 wkhtmltopdf")
+        print("请前往以下网址下载并安装 wkhtmltopdf:")
+        print("https://wkhtmltopdf.org/downloads.html")
+        print("!"*50 + "\n")
+        # Ask user if they want to open the download page
+        try:
+            choice = input("是否立即打开下载页面? (y/n): ").strip().lower()
+            if choice == 'y':
+                import webbrowser
+                webbrowser.open("https://wkhtmltopdf.org/downloads.html")
+        except:
+            pass
+        return False
 
-# 打印相关模块
-if platform.system() == 'Windows':
-    import win32print
-    import win32ui
-    import win32con
-    import win32api
-    from PIL import Image, ImageWin
+def register_startup():
+    """注册开机自启"""
+    system = platform.system()
+    script_path = os.path.abspath(sys.argv[0])
+    
+    print(f"正在配置开机自启 ({system})...")
+    
+    try:
+        if system == 'Windows':
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
+            winreg.SetValueEx(key, "CloudPrintClient", 0, winreg.REG_SZ, f'"{sys.executable}" "{script_path}"')
+            winreg.CloseKey(key)
+            print("Windows开机自启设置成功")
+            
+        elif system == 'Linux':
+            # Create .desktop file in ~/.config/autostart
+            autostart_dir = os.path.expanduser("~/.config/autostart")
+            if not os.path.exists(autostart_dir):
+                os.makedirs(autostart_dir)
+            
+            desktop_file = os.path.join(autostart_dir, "cloud_print_client.desktop")
+            content = f"""[Desktop Entry]
+Type=Application
+Name=Cloud Print Client
+Exec={sys.executable} {script_path}
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=Start Cloud Print Client
+"""
+            with open(desktop_file, 'w') as f:
+                f.write(content)
+            print(f"Linux开机自启设置成功: {desktop_file}")
+            
+        elif system == 'Darwin': # macOS
+            # Create launch agent plist
+            plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.cloudprintclient</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{sys.executable}</string>
+        <string>{script_path}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
+"""
+            launch_agents = os.path.expanduser("~/Library/LaunchAgents")
+            if not os.path.exists(launch_agents):
+                os.makedirs(launch_agents)
+                
+            plist_path = os.path.join(launch_agents, "com.user.cloudprintclient.plist")
+            with open(plist_path, 'w') as f:
+                f.write(plist_content)
+            
+            # Load the job
+            try:
+                subprocess.run(['launchctl', 'load', plist_path], check=False)
+            except:
+                pass
+            print(f"macOS开机自启设置成功: {plist_path}")
+            
+    except Exception as e:
+        print(f"设置开机自启失败: {e}")
 
 
 class PrintClient:
@@ -677,9 +784,16 @@ class PrintClient:
 
 
 async def main():
-    client = PrintClient()
     print("=== 云打印客户端 ===")
-
+    
+    # 检查wkhtmltopdf
+    check_wkhtmltopdf()
+    
+    # 注册开机自启
+    register_startup()
+    
+    client = PrintClient()
+    
     # 如果缺少凭证或打印机，则必须设置
     if not client.username or not client.password:
         client.set_user_credentials()

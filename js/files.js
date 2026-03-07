@@ -908,13 +908,23 @@
     }
 
     function createNewFile() {
-        const input = prompt('请输入文件名（可包含路径，例如 docs/note）\n注意：请暂时不要使用嵌套文件夹，这个功能正在开发', '新文档');
+        const input = prompt('请输入文件名（如需在文件夹中创建，请确保文件夹已存在，例如 docs/note）', '新文档');
         if (!input) return;
 
         let path = normalizePath(input);
-        ensureParentFolders(path);
-
+        
+        // 检查父文件夹是否存在
+        const parentPath = getParentPath(path);
         const files = g('files');
+        
+        if (parentPath) {
+            const parentExists = files.some(f => f.name === parentPath && f.type === 'folder');
+            if (!parentExists) {
+                alert('父文件夹 "' + parentPath + '" 不存在，请先使用“新建文件夹”功能创建');
+                return;
+            }
+        }
+
         if (files.some(f => f.name === path && f.type === 'file')) {
             alert('已存在同名文件，请使用其他名称');
             return;
@@ -924,7 +934,7 @@
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             name: path,
             type: 'file',
-            content: '# 新文档\n\n开始编写您的内容...',
+            content: '# ' + getBasename(path) + '\n\n开始编写您的内容...',
             lastModified: Date.now(),
             isSynced: false
         };
