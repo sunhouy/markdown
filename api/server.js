@@ -36,7 +36,22 @@ if (fs.existsSync(distPath)) {
 } else {
     // Fallback to serving root for development (though Vite is recommended)
     // Note: Root index.html now uses modules, so it won't work directly without Vite
-    app.use(express.static(path.join(__dirname, '../')));
+    console.log('Frontend build (dist) not found. Serving from root directory.');
+    const rootPath = path.join(__dirname, '../');
+    app.use(express.static(rootPath));
+    
+    // SPA catch-all handler for root fallback
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) {
+            return next();
+        }
+        const indexPath = path.join(rootPath, 'index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+        } else {
+            res.status(404).send('Frontend build not found (dist folder missing) and index.html not found in root. Please run "npm run build".');
+        }
+    });
 }
 
 // Import routes
