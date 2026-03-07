@@ -30,8 +30,8 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
-        source: "dist,api,package.json,package-lock.json"
-        target: "/www/wwwroot/js-main"
+        source: "dist,api,package.json,package-lock.json,nginx.conf"
+        target: "/www/wwwroot/js"
         strip_components: 0
 
     - name: Install dependencies on server
@@ -43,5 +43,16 @@ jobs:
         script: |
           cd /www/wwwroot/js
           npm install --production
-          # 如果使用了 PM2 管理进程，取消下面注释
-          # pm2 restart all
+          
+          # PM2 启动/重启服务
+          if pm2 describe md-server > /dev/null; then
+            pm2 restart md-server
+          else
+            pm2 start api/server.js --name "md-server"
+          fi
+          
+          # 配置 Nginx
+          if [ -f "nginx.conf" ]; then
+            mv nginx.conf /www/server/panel/vhost/nginx/md.yhsun.cn.conf
+            service nginx reload
+          fi
