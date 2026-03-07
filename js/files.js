@@ -349,12 +349,33 @@
                     // 查找该路径是否有对应的条目
                     const entry = pathMap[fullPath];
                     const node = {
-                        name: fullPath,
-                        basename: part,
-                        type: entry ? entry.type : (isLast ? f.type : 'folder'),
-                        id: entry ? entry.id : null,
-                        children: []
-                    };
+                    name: fullPath,
+                    basename: part,
+                    type: 'file', 
+                    id: null,
+                    children: []
+                };
+
+                // 优先使用 pathMap 中的条目信息
+                if (entry) {
+                    node.id = entry.id;
+                    node.type = entry.type;
+                } else if (isLast) {
+                    node.id = f.id;
+                    node.type = f.type;
+                } else {
+                    node.type = 'folder';
+                }
+                
+                // 强制：只要是路径中间部分，必须是文件夹
+                if (i < parts.length - 1) {
+                    node.type = 'folder';
+                }
+
+                // 强制：如果 entry 是 folder，那它就是 folder (处理空文件夹的情况)
+                if (entry && entry.type === 'folder') {
+                    node.type = 'folder';
+                }
                     map[fullPath] = node;
                     parent.children.push(node);
                 }
@@ -398,7 +419,22 @@
  data-id="${node.id}" title="删除"><i class="fas fa-trash"></i></button>        
                      `;
                 }
+            } else if (node.type === 'folder') {
+                // 对于虚拟文件夹，如果有对应的真实文件夹路径，我们也可以尝试操作
+                // 但目前后端只支持通过ID操作，所以这里先不显示按钮，或者需要前端生成临时ID
+                // 修正：如果文件夹没有ID（虚拟文件夹），但它是路径的一部分，我们仍然可以操作它
+                // 但需要修改 rename/move/delete 函数支持 path 参数
+                // 暂时方案：只对有ID的文件夹显示按钮。用户创建的空文件夹应该有ID。
+                // 如果是自动生成的父级文件夹（serverFiles逻辑中），可能没有ID。
+                // 检查 serverFiles 逻辑，确保生成的文件夹有ID
             }
+
+            // 修正空文件夹显示为文件的问题：
+            // 在 buildTree 中，如果一个节点是文件夹类型，或者有子节点，它就是文件夹
+            // isFolder 变量已经处理了这个逻辑：const isFolder = node.type === 'folder' || node.children.length > 0;
+            // 但是如果 node.type 是 'file' 且没有子节点，它就会显示为文件
+            // 需要确保创建空文件夹时，type 是 'folder'
+
             html += `<li class="file-item ${node.id === g('currentFileId') ?
                 'active' : ''}" data-id="${node.id || ''}" data-type="${node.type}" data-path="${node.name}" draggable="true"           
  style="list-style:none;">`;
@@ -407,11 +443,13 @@
             html += `<div class="file-header" style="display:flex;             
  align-items:center; padding: 6px 4px;">`;
             html += toggleIcon;
-            const nameClass = isFolder ? 'file-name folder-name' : 'file-name';
+            // 只要是 folder 类型，无论有无子节点，都添加 folder-name 类（蓝色）
+            const nameClass = node.type === 'folder' ? 'file-name folder-name' : 'file-name';
             html += `<span class="${nameClass}" title="${node.name}"              
  style="flex:1; margin-left:5px; white-space:nowrap; overflow:hidden;           
  text-overflow:ellipsis;">${icon} ${syncIcon} ${node.basename}</span>`;
-            html += `<div class="file-actions">${actions}</div>`;
+            // 始终显示操作按钮容器，通过CSS控制显隐
+            html += `<div class="file-actions" style="opacity: 1;">${actions}</div>`;
             html += `</div>`;
 
             if (hasChildren) {
@@ -642,63 +680,65 @@
         // 动态获取当前所有可用的文件夹路径（包括没有显式建文件夹记录的虚拟路径）
         const folders = getAllFolderPaths();
 
-        let options = '请选择目标文件夹（输入序号）：\n';
-        folders.forEach((f, idx) => options += `${idx + 1}. ${f === '' ? '/' :
-            f}\n`);
-        const choice = prompt(options + '\n输入数字：');
-        if (!choice) return;
+        // 创建自定义模态框进行选择
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10005;';
+        
+        const content = document.createElement('div');
+        content.className = 'modal';
+        content.style.cssText = 'width:90%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;padding:20px;background:white;border-radius:8px;';
+        
+        const header = document.createElement('h3');
+        header.textContent = '移动到...';
+        header.style.margin = '0 0 15px 0';
+        
+        const list = document.createElement('div');
+        list.style.cssText = 'flex:1;overflow-y:auto;border:1px solid #eee;border-radius:4px;margin-bottom:15px;';
+        
+        // 过滤逻辑：只能移动到文件夹，不能移动到文件
+        // getAllFolderPaths 已经只返回文件夹路径了，所以这里是安全的
+        // 但是我们需要确保不显示"移动到文件"的选项（尽管 getAllFolderPaths 应该已经处理了）
+        // 另外，如果是移动文件夹，需要排除自己及子目录（moveFileTo中已处理，但界面上最好也置灰）
+        
+        const isFolder = item.type === 'folder';
+        const currentPath = item.name;
 
-        const idx = parseInt(choice) - 1;
-        if (isNaN(idx) || idx < 0 || idx >= folders.length) {
-            alert('选择无效');
-            return;
-        }
-
-        const targetPath = folders[idx];
-        const oldName = item.name;
-        const newBasename = getBasename(oldName);
-        const newName = targetPath ? targetPath + '/' + newBasename :
-            newBasename;
-
-        // 防止移动到自己或自己的子目录中
-        if (item.type === 'folder' && (newName === oldName ||
-            newName.startsWith(oldName + '/'))) {
-            alert('不能将文件夹移动到自身或其子目录中');
-            return;
-        }
-
-        if (files.some(f => f.name === newName && f.id !== id)) {
-            alert('目标文件夹下已存在同名项');
-            return;
-        }
-
-        if (item.type === 'folder') {
-            renameFolderAndChildren(oldName, newName);
-        } else {
-            item.name = newName;
-        }
-        item.lastModified = Date.now();
-        item.isSynced = false;
-
-        localStorage.setItem('vditor_files', JSON.stringify(files));
-        loadFiles();
-        global.showMessage(`${item.type === 'folder' ? '文件夹' :
-            '文件'}已移动`);
-
-        if (g('currentUser')) {
-            if (item.type === 'folder') {
-                const affectedFiles = files.filter(f => f.type === 'file' &&
-                    (f.name.startsWith(newName + '/') || f.name === newName));
-                affectedFiles.forEach(f => {
-                    global.deleteFileFromServer(oldName +
-                        f.name.substring(newName.length)).catch(e=>{});
-                    global.syncFileToServer(f.id);
-                });
-            } else {
-                global.deleteFileFromServer(oldName).then(() =>
-                    global.syncFileToServer(item.id));
+        folders.forEach((f, idx) => {
+            // 如果是移动文件夹，检查是否是自己或子目录
+            const isSelfOrChild = isFolder && (f === currentPath || f.startsWith(currentPath + '/'));
+            
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:10px;cursor:pointer;border-bottom:1px solid #f5f5f5;display:flex;align-items:center;';
+            if (isSelfOrChild) {
+                div.style.color = '#ccc';
+                div.style.cursor = 'not-allowed';
             }
-        }
+            
+            div.innerHTML = `<i class="fas fa-folder" style="color:${isSelfOrChild ? '#eee' : '#f7b731'};margin-right:10px;"></i> ${f === '' ? '根目录' : f}`;
+            
+            if (!isSelfOrChild) {
+                div.onmouseover = () => div.style.background = '#f0f0f0';
+                div.onmouseout = () => div.style.background = 'white';
+                div.onclick = () => {
+                    moveFileTo(id, f);
+                    modal.remove();
+                };
+            }
+            list.appendChild(div);
+        });
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '取消';
+        closeBtn.className = 'modal-btn secondary';
+        closeBtn.style.alignSelf = 'flex-end';
+        closeBtn.onclick = () => modal.remove();
+        
+        content.appendChild(header);
+        content.appendChild(list);
+        content.appendChild(closeBtn);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
     }
 
     function renameFile(id) {
