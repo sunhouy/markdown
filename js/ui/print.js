@@ -1486,8 +1486,58 @@
             return printContentCache[cacheKey];
         }
 
-        // Always use formatForPrint to ensure consistent processing and auto-layout
-        var htmlContent = formatForPrint(content, settings);
+        // 使用服务端 API 进行 Markdown 转换
+        var htmlContent = '';
+        try {
+            var api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            // 兼容 api 路径可能不包含 /api 的情况 (取决于 getApiBaseUrl 实现)
+            // 如果 getApiBaseUrl 返回 'api' (相对路径), 则 fetch('api/convert/markdown')
+            // 如果返回完整 URL, 需要拼接
+            var apiUrl = api.startsWith('http') ? api + '/convert/markdown' : 'api/convert/markdown';
+            
+            var response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: content })
+            });
+            
+            var result = await response.json();
+            if (result.code === 200) {
+                htmlContent = result.data;
+            } else {
+                console.error('Markdown conversion failed:', result.message);
+                // Fallback to local formatting if server fails
+                htmlContent = formatForPrint(content, settings);
+            }
+        } catch (e) {
+            console.error('Markdown conversion error:', e);
+            // Fallback to local formatting
+            htmlContent = formatForPrint(content, settings);
+        }
+
+        // Post-process HTML to match expected structure for Mermaid and others
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+
+        // Transform mermaid code blocks: <pre><code class="language-mermaid">...</code></pre> -> <div class="mermaid">...</div>
+        var mermaidCodes = tempDiv.querySelectorAll('code.language-mermaid');
+        mermaidCodes.forEach(function(code) {
+            var pre = code.parentNode;
+            if (pre.tagName === 'PRE') {
+                var div = document.createElement('div');
+                div.className = 'mermaid';
+                div.setAttribute('data-mermaid', code.textContent);
+                div.textContent = code.textContent;
+                div.style.textAlign = 'center';
+                div.style.margin = '1em 0';
+                pre.parentNode.replaceChild(div, pre);
+            }
+        });
+
+        // Update htmlContent
+        htmlContent = tempDiv.innerHTML;
 
         // Convert formulas and charts to images and upload
         if (!global.convertFormulasAndChartsToImages) {

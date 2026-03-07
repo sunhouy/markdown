@@ -100,6 +100,7 @@ const fileRoutes = require('./routes/files');
 const shareRoutes = require('./routes/share');
 const adminRoutes = require('./routes/admin');
 const apiRoutes = require('./routes/api');
+const convertRoutes = require('./routes/convert');
 
 // Use routes
 app.use('/api', legacyRoutes);
@@ -108,6 +109,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/external', apiRoutes);
+app.use('/api/convert', convertRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -746,7 +746,10 @@
 
             if (g('currentUser')) {
                 fileNamesToDelete.forEach(name => global.deleteFileFromServer(name));
-                global.deleteFileFromServer(item.name);
+                // 只有当文件夹本身已同步（即服务器存在记录）时，才发送删除请求
+                if (item.isSynced) {
+                    global.deleteFileFromServer(item.name);
+                }
             }
 
             toDelete.forEach(f => {
