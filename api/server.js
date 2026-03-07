@@ -26,6 +26,13 @@ app.use('/fa', express.static(path.join(__dirname, '../node_modules/@fortawesome
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
+    // SPA catch-all handler: for any request that doesn't match an API route or static file, send index.html
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) {
+            return next();
+        }
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
 } else {
     // Fallback to serving root for development (though Vite is recommended)
     // Note: Root index.html now uses modules, so it won't work directly without Vite
