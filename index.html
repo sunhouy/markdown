@@ -134,6 +134,69 @@
     </div>
 </div>
 
+<!-- 设置模态窗口 -->
+<div class="modal-overlay" id="settingsModalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>设置</h2>
+        </div>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>默认编辑器模式</label>
+                <div class="radio-group" id="defaultEditorMode">
+                    <label><input type="radio" name="editorMode" value="wysiwyg"> 所见即所得</label>
+                    <label><input type="radio" name="editorMode" value="ir"> 即时渲染</label>
+                    <label><input type="radio" name="editorMode" value="sv"> 分屏预览</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>主题模式</label>
+                <div class="radio-group" id="themeMode">
+                    <label><input type="radio" name="themeMode" value="light"> 日间模式</label>
+                    <label><input type="radio" name="themeMode" value="dark"> 夜间模式</label>
+                    <label><input type="radio" name="themeMode" value="system"> 跟随系统</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>底部工具栏按钮 (5-7个)</label>
+                <div class="checkbox-group" id="toolbarButtonsSettings">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn primary" id="saveSettingsBtn">保存</button>
+                <button class="modal-btn secondary" id="cancelSettingsBtn">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 关于模态窗口 -->
+<div class="modal-overlay" id="aboutModalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>关于</h2>
+        </div>
+        <div class="modal-content" style="text-align: center;">
+            <p><strong>Markdown编辑器</strong></p>
+            <p>作者：孙厚云</p>
+            <p>项目介绍：一个简洁高效的Markdown在线编辑器，支持实时预览、云端同步、历史版本等功能。</p>
+            <p><a href="https://github.com/sunhouyun/md" target="_blank">GitHub地址</a></p>
+            <hr>
+            <p><strong>致谢开源项目</strong></p>
+            <ul style="list-style: none; padding: 0;">
+                <li>Vditor</li>
+                <li>Font Awesome</li>
+                <li>Express</li>
+                <li>Nginx</li>
+            </ul>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn secondary" id="closeAboutBtn">关闭</button>
+        </div>
+    </div>
+</div>
+
 <!-- 编辑器容器 -->
 <div class="editor-container">
     <div id="vditor"></div>
