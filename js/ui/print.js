@@ -65,17 +65,15 @@
         var sections = [];
         
         var winSection = createSection('Windows', isWin, [
-            { name: '.exe', url: 'https://static.yhsun.cn/print_client.exe' }
+            { name: 'print_client_windows', url: 'https://static.yhsun.cn/print_client_windows.exe' }
         ]);
         
         var linuxSection = createSection('Linux', isLinux, [
-            { name: '.deb', url: 'https://static.yhsun.cn/print_client.deb' },
-            { name: '.rpm', url: 'https://static.yhsun.cn/print_client.rpm' },
-            { name: '.tar.gz', url: 'https://static.yhsun.cn/print_client.tar.gz' }
+            { name: 'print_client_linux', url: 'https://static.yhsun.cn/print_client_linux' }
         ]);
         
         var macSection = createSection('macOS', isMac, [
-            { name: 'print_client.dmg', url: 'https://static.yhsun.cn/print_client.dmg' }
+            { name: 'print_client_macos', url: 'https://static.yhsun.cn/print_client_macos' }
         ]);
 
         if (isWin) {

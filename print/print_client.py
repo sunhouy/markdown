@@ -28,7 +28,7 @@ if platform.system() == 'Windows':
         import win32api
         from PIL import Image, ImageWin
     except ImportError:
-        print("警告: 未安装pywin32或Pillow库，Windows打印功能可能受限")
+        print("警告: 未安装pywin32或Pillow库，Windows下无法打印，请退出程序并联系开发者")
 
 # Global configuration for pdfkit
 pdfkit_available = False
