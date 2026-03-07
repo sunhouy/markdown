@@ -37,6 +37,16 @@
         if (!html) {
             return html;
         }
+
+        // 动态加载 html-to-image
+        var htmlToImage;
+        try {
+            htmlToImage = await import('html-to-image');
+        } catch (e) {
+            console.error('Failed to load html-to-image', e);
+            return html;
+        }
+
         var container = document.createElement('div');
         container.innerHTML = html;
 
@@ -142,7 +152,7 @@
                 tempDiv.style.height = (formulaRect.height + 20) + 'px';
 
                 // Convert to image using html-to-image
-                if (window.htmlToImage) {
+                if (htmlToImage) {
                     try {
                         var dataUrl = await htmlToImage.toPng(tempDiv);
                         document.body.removeChild(tempDiv);
@@ -337,7 +347,7 @@
                 await new Promise(resolve => setTimeout(resolve, 1000)); // 增加等待时间确保渲染完成
 
                 // Convert to image using html-to-image
-                if (window.htmlToImage) {
+                if (htmlToImage) {
                     try {
                         var dataUrl = await htmlToImage.toPng(tempDiv);
                         document.body.removeChild(tempDiv);
