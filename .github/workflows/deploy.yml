@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -31,7 +31,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
         source: "dist,api,package.json,package-lock.json"
-        target: "/www/wwwroot/js"
+        target: "/www/wwwroot/js-main"
         strip_components: 0
 
     - name: Install dependencies on server
