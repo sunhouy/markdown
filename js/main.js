@@ -25,8 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
         { id: 'mobileInsertBtn', icon: 'fas fa-plus', text: '插入', fn: function() { window.showInsertMenu(); } },
         { id: 'mobileFormulaBtn', icon: 'fas fa-superscript', text: '公式', fn: function() { if (typeof window.showFormulaPicker === 'function') window.showFormulaPicker(); } },
         { id: 'mobileChartBtn', icon: 'fas fa-chart-bar', text: '图表', fn: function() { window.showChartPicker(); } },
-        { id: 'mobileUndoBtn', icon: 'fas fa-undo', text: '撤销', fn: function() { if (window.vditor) window.vditor.undo(); } },
-        { id: 'mobileRedoBtn', icon: 'fas fa-redo', text: '重做', fn: function() { if (window.vditor) window.vditor.redo(); } },
+        { id: 'mobileUndoBtn', icon: 'fas fa-undo', text: '撤销', fn: function() { if (window.vditor && window.vditor.vditor && window.vditor.vditor.undo) window.vditor.vditor.undo.undo(window.vditor.vditor); } },
+        { id: 'mobileRedoBtn', icon: 'fas fa-redo', text: '重做', fn: function() { if (window.vditor && window.vditor.vditor && window.vditor.vditor.undo) window.vditor.vditor.undo.redo(window.vditor.vditor); } },
         { id: 'mobileSaveBottomBtn', icon: 'fas fa-save', text: '保存', fn: function() { window.saveCurrentFile(true); } }
     ];
 
