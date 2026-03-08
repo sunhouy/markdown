@@ -41,8 +41,31 @@ async function exportFile(content, ext) {
                     }
                     var htmlContent = await global.preparePrintContent(content, settings);
                     
-                    // 直接下载
-                    await generatePDF(htmlContent, settings, '文档_' + new Date().toISOString().slice(0, 10) + '.pdf');
+                    // 生成PDF并获取URL
+                    var pdfUrl = await generatePDF(htmlContent, settings);
+                    
+                    // 确保pdfUrl是完整的URL
+                    var fullPdfUrl = pdfUrl;
+                    if (!pdfUrl.startsWith('http://') && !pdfUrl.startsWith('https://')) {
+                        // 构建完整的URL
+                        var baseUrl = window.location.origin;
+                        if (!pdfUrl.startsWith('/')) {
+                            baseUrl += '/' + window.location.pathname.split('/').slice(0, -1).join('/') + '/';
+                        }
+                        fullPdfUrl = baseUrl + pdfUrl;
+                    }
+
+                    // 创建下载链接
+                    var a = document.createElement('a');
+                    a.href = fullPdfUrl;
+                    a.download = '文档_' + new Date().toISOString().slice(0, 10) + '.pdf';
+                    a.target = '_blank'; // 新窗口打开以防下载失败
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    setTimeout(function() {
+                        document.body.removeChild(a);
+                    }, 100);
                     
                     loadingModal.remove();
                     global.showMessage('文档已导出为.pdf格式');
@@ -93,8 +116,15 @@ async function exportFile(content, ext) {
                     var a = document.createElement('a');
                     a.href = url;
                     a.download = '文档_' + new Date().toISOString().slice(0, 10) + '.html';
+                    document.body.appendChild(a);
                     a.click();
                     
+                    setTimeout(function() {
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 100);
+                    
+                    loadingModal.remove();
                     global.showMessage('文档已导出为.html格式');
                  } catch (error) {
                     console.error('HTML导出错误:', error);

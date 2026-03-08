@@ -140,6 +140,20 @@
                             output: 'html',
                             strict: 'ignore'
                         });
+
+                        // 显式隐藏 MathML 元素，防止 html2canvas 截图时包含重复内容
+                        var mathmlElements = tempDiv.querySelectorAll('.katex-mathml');
+                        for (var m = 0; m < mathmlElements.length; m++) {
+                            mathmlElements[m].style.display = 'none';
+                            mathmlElements[m].setAttribute('aria-hidden', 'true');
+                        }
+                        
+                        // 确保 HTML 渲染部分可见
+                        var htmlElements = tempDiv.querySelectorAll('.katex-html');
+                        for (var h = 0; h < htmlElements.length; h++) {
+                            htmlElements[h].style.display = 'block';
+                        }
+
                     } catch (katexError) {
                         console.error('[Render Debug] KaTeX渲染失败:', katexError);
                         continue;

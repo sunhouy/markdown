@@ -472,15 +472,6 @@ function g(name) { return global[name]; }
             }
         }
 
-        // 关闭模态框时关闭WebSocket连接
-        var cancelBtn = modalContent.querySelector('#printCancelBtn');
-        if (cancelBtn) {
-            cancelBtn.onclick = function() {
-                cleanup();
-                printModal.remove();
-            };
-        }
-
         // 预览和发送按钮也需要关闭连接
         var previewBtn = modalContent.querySelector('#printPreviewBtn');
         if (previewBtn) {
@@ -523,6 +514,7 @@ function g(name) { return global[name]; }
 
         // 处理选择的文件
         async function handleSelectedFiles(files) {
+
             if (!g('currentUser')) {
                 global.showMessage('请先登录后再使用文件打印功能');
                 if (g('showLoginModal')) {
@@ -790,6 +782,15 @@ function g(name) { return global[name]; }
         }
 
         } // End of if (mode === 'print')
+
+        // 取消按钮逻辑 (所有模式通用)
+        var cancelBtn = modalContent.querySelector('#printCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.onclick = function() {
+                if (typeof cleanup === 'function') cleanup();
+                printModal.remove();
+            };
+        }
 
         // 打印模态框点击外部关闭时也需要清除定时器
         printModal.addEventListener('click', function(e) {
