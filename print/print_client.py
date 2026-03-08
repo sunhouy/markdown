@@ -34,82 +34,21 @@ if platform.system() == 'Windows':
 pdfkit_available = False
 wkhtmltopdf_config = None
 
-def check_wkhtmltopdf():
-    """检查wkhtmltopdf是否安装，如果没有则提示用户下载"""
-    global pdfkit_available, wkhtmltopdf_config
-    
-    wkhtmltopdf_path = None
-    system = platform.system()
-    
-    print("正在检查 wkhtmltopdf...")
-    
-    # 1. Check system PATH
-    try:
-        cmd = ['where', 'wkhtmltopdf'] if system == 'Windows' else ['which', 'wkhtmltopdf']
-        result = subprocess.run(cmd, capture_output=True, text=True, shell=(system == 'Windows'))
-        if result.returncode == 0 and result.stdout.strip():
-            wkhtmltopdf_path = result.stdout.strip().split('\n')[0]
-            print(f"从系统PATH中找到wkhtmltopdf: {wkhtmltopdf_path}")
-    except Exception as e:
-        print(f"检查PATH失败: {e}")
-
-    # 2. Check common paths if not found in PATH
-    if not wkhtmltopdf_path:
-        common_paths = []
-        if system == 'Windows':
-            common_paths = [
-                r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe',
-                r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe',
-                r'C:\wkhtmltopdf\bin\wkhtmltopdf.exe',
-            ]
-        elif system == 'Darwin':
-            common_paths = [
-                '/usr/local/bin/wkhtmltopdf',
-                '/opt/homebrew/bin/wkhtmltopdf',
-            ]
-        elif system == 'Linux':
-            common_paths = [
-                '/usr/bin/wkhtmltopdf',
-                '/usr/local/bin/wkhtmltopdf',
-            ]
-            
-        for path in common_paths:
-            if os.path.exists(path):
-                wkhtmltopdf_path = path
-                print(f"在常见路径找到wkhtmltopdf: {wkhtmltopdf_path}")
-                break
-
-    if wkhtmltopdf_path:
-        try:
-            wkhtmltopdf_config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
-            print(f"pdfkit已配置: {wkhtmltopdf_path}")
-            pdfkit_available = True
-            return True
-        except Exception as e:
-            print(f"配置pdfkit失败: {e}")
-            return False
-    else:
-        print("\n" + "!"*50)
-        print("错误: 未找到 wkhtmltopdf")
-        print("请前往以下网址下载并安装 wkhtmltopdf:")
-        print("https://wkhtmltopdf.org/downloads.html")
-        print("!"*50 + "\n")
-        # Ask user if they want to open the download page
-        try:
-            choice = input("是否立即打开下载页面? (y/n): ").strip().lower()
-            if choice == 'y':
-                import webbrowser
-                webbrowser.open("https://wkhtmltopdf.org/downloads.html")
-        except:
-            pass
-        return False
-
-def register_startup():
+def register_startup(force=False):
     """注册开机自启"""
     system = platform.system()
     script_path = os.path.abspath(sys.argv[0])
     
-    print(f"正在配置开机自启 ({system})...")
+    # Check if already registered (simple check by config existence)
+    config_file = os.path.join(os.path.expanduser('~'), '.print_client_config.ini')
+    config = configparser.ConfigParser()
+    if os.path.exists(config_file):
+        config.read(config_file)
+        
+    if not force and config.has_section('print_client') and config['print_client'].get('autostart') == 'true':
+        return
+
+    print(f"\n正在配置开机自启 ({system})...")
     
     try:
         if system == 'Windows':
@@ -173,6 +112,13 @@ Comment=Start Cloud Print Client
             except:
                 pass
             print(f"macOS开机自启设置成功: {plist_path}")
+            
+        # Update config to remember setting
+        if not config.has_section('print_client'):
+            config['print_client'] = {}
+        config['print_client']['autostart'] = 'true'
+        with open(config_file, 'w', encoding='utf-8') as f:
+            config.write(f)
             
     except Exception as e:
         print(f"设置开机自启失败: {e}")
@@ -267,12 +213,15 @@ class PrintClient:
         print("\n=== 配置修改菜单 ===")
         print("1. 修改用户名和密码")
         print("2. 修改默认打印机")
-        print("3. 返回")
-        choice = input("请选择 (1/2/3): ").strip()
+        print("3. 设置开机自启")
+        print("4. 返回")
+        choice = input("请选择 (1/2/3/4): ").strip()
         if choice == '1':
             self.set_user_credentials()
         elif choice == '2':
             self.select_printer()
+        elif choice == '3':
+            register_startup(force=True)
         else:
             print("保持原有配置。")
 
@@ -309,120 +258,18 @@ class PrintClient:
 
     def _print_windows(self, content, settings):
         """Windows打印实现"""
-        # 检查是否是HTML内容
-        is_html = '<html>' in content.lower() or '<body>' in content.lower() or settings.get('content_type') == 'html'
+        # 检查是否是HTML内容（这里其实不会是HTML了，因为服务器传过来的是PDF URL或HTML字符串）
+        # 如果content是HTML字符串，我们直接作为txt打印（因为不再支持客户端wkhtmltopdf）
+        # 或者提示用户不支持
 
         # 临时文件路径
         temp_file = os.path.join(os.environ.get('TEMP', '/tmp'), f'print_{datetime.now().timestamp()}')
 
-        # 如果是HTML内容且pdfkit可用，转换为PDF
-        if is_html and pdfkit_available:
-            try:
-                # 保存HTML文件，确保添加字体支持
-                html_file = temp_file + '.html'
-
-                # 检查HTML是否已经有DOCTYPE和head部分
-                if '<!DOCTYPE html>' not in content.lower() or '<head>' not in content.lower():
-                    # 如果没有，添加基本的HTML结构和字体支持
-                    html_content = '''<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打印文档</title>
-    <style>
-        /* 添加中文字体支持 */
-        @font-face {
-            font-family: "SimSun";
-            src: local("SimSun"), local("宋体");
-        }
-        @font-face {
-            font-family: "SimHei";
-            src: local("SimHei"), local("黑体");
-        }
-        @font-face {
-            font-family: "Microsoft YaHei";
-            src: local("Microsoft YaHei"), local("微软雅黑");
-        }
-        body {
-            font-family: "SimSun", "宋体", "Microsoft YaHei", "微软雅黑", sans-serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            color: #333;
-        }
-    </style>
-</head>
-<body>
-'''
-                    html_content += content
-                    html_content += '''
-</body>
-</html>'''
-                else:
-                    # 如果已经有HTML结构，确保添加字体支持
-                    html_content = content
-                    # 检查是否有head部分
-                    if '<head>' in html_content:
-                        # 在head标签内添加字体支持
-                        font_css = '''
-    <style>
-        /* 添加中文字体支持 */
-        @font-face {
-            font-family: "SimSun";
-            src: local("SimSun"), local("宋体");
-        }
-        @font-face {
-            font-family: "SimHei";
-            src: local("SimHei"), local("黑体");
-        }
-        @font-face {
-            font-family: "Microsoft YaHei";
-            src: local("Microsoft YaHei"), local("微软雅黑");
-        }
-        body {
-            font-family: "SimSun", "宋体", "Microsoft YaHei", "微软雅黑", sans-serif;
-        }
-    </style>'''
-                        html_content = html_content.replace('<head>', '<head>' + font_css)
-                    # 确保有charset meta标签
-                    if 'charset' not in html_content.lower():
-                        html_content = html_content.replace('<head>', '<head><meta charset="UTF-8">')
-
-                with open(html_file, 'w', encoding='utf-8') as f:
-                    f.write(html_content)
-
-                # 转换为PDF，添加选项确保中文支持
-                pdf_file = temp_file + '.pdf'
-                print(f"正在使用pdfkit将HTML转换为PDF: {pdf_file}")
-
-                # 添加选项以支持中文并避免网络错误
-                options = {
-                    'encoding': 'UTF-8',
-                    'no-outline': None,
-                    'quiet': '',
-                    'disable-smart-shrinking': None,
-                    'dpi': 300,
-                    'image-dpi': 300,
-                    'image-quality': 94,
-                    'disable-external-links': None,
-                    'disable-javascript': None,
-                    'load-error-handling': 'ignore',
-                    'load-media-error-handling': 'ignore'
-                }
-
-                # 使用配置的pdfkit
-                pdfkit.from_file(html_file, pdf_file, configuration=wkhtmltopdf_config, options=options)
-
-                # 打印PDF文件
-                print(f"正在打印PDF文件: {pdf_file}")
-                os.startfile(pdf_file, "print")
-                return
-            except Exception as e:
-                print(f"pdfkit转换失败: {e}")
-                # 转换失败，继续使用备用方法
-
+        # 如果是HTML内容，且没有pdfkit，我们无法在客户端转换
+        # 但现在的架构是服务器转换好PDF发过来，所以content通常是PDF的URL
+        
         # 备用方法：直接处理文件
-        extension = '.html' if is_html else '.txt'
+        extension = '.txt'
         temp_file = temp_file + extension
         with open(temp_file, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -438,14 +285,9 @@ class PrintClient:
             except Exception as e:
                 print(f"subprocess.run 失败: {e}")
                 try:
-                    # 尝试使用默认浏览器打开HTML文件
-                    if is_html:
-                        print("尝试使用默认浏览器打开HTML文件")
-                        win32api.ShellExecute(0, "open", temp_file, None, ".", 1)
-                    else:
-                        # 尝试使用默认文本编辑器打开文本文件
-                        print("尝试使用默认文本编辑器打开文本文件")
-                        win32api.ShellExecute(0, "open", temp_file, None, ".", 1)
+                    # 尝试使用默认文本编辑器打开文本文件
+                    print("尝试使用默认文本编辑器打开文本文件")
+                    win32api.ShellExecute(0, "open", temp_file, None, ".", 1)
                 except Exception as e:
                     print(f"打开文件失败: {e}")
 
@@ -505,121 +347,14 @@ class PrintClient:
 
     def _print_unix(self, content, settings):
         """Unix-like系统打印实现"""
-        # 检查是否是HTML内容
-        is_html = '<html>' in content.lower() or '<body>' in content.lower() or settings.get('content_type') == 'html'
-
         # 临时文件路径
         temp_file = os.path.join('/tmp', f'print_{datetime.now().timestamp()}')
 
-        # 如果是HTML内容且pdfkit可用，转换为PDF
-        if is_html and pdfkit_available:
-            try:
-                # 保存HTML文件，确保添加字体支持
-                html_file = temp_file + '.html'
-
-                # 检查HTML是否已经有DOCTYPE和head部分
-                if '<!DOCTYPE html>' not in content.lower() or '<head>' not in content.lower():
-                    # 如果没有，添加基本的HTML结构和字体支持
-                    html_content = '''<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打印文档</title>
-    <style>
-        /* 添加中文字体支持 */
-        @font-face {
-            font-family: "SimSun";
-            src: local("SimSun"), local("宋体");
-        }
-        @font-face {
-            font-family: "SimHei";
-            src: local("SimHei"), local("黑体");
-        }
-        @font-face {
-            font-family: "Microsoft YaHei";
-            src: local("Microsoft YaHei"), local("微软雅黑");
-        }
-        body {
-            font-family: "SimSun", "宋体", "Microsoft YaHei", "微软雅黑", sans-serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            color: #333;
-        }
-    </style>
-</head>
-<body>
-'''
-                    html_content += content
-                    html_content += '''
-</body>
-</html>'''
-                else:
-                    # 如果已经有HTML结构，确保添加字体支持
-                    html_content = content
-                    # 检查是否有head部分
-                    if '<head>' in html_content:
-                        # 在head标签内添加字体支持
-                        font_css = '''
-    <style>
-        /* 添加中文字体支持 */
-        @font-face {
-            font-family: "SimSun";
-            src: local("SimSun"), local("宋体");
-        }
-        @font-face {
-            font-family: "SimHei";
-            src: local("SimHei"), local("黑体");
-        }
-        @font-face {
-            font-family: "Microsoft YaHei";
-            src: local("Microsoft YaHei"), local("微软雅黑");
-        }
-        body {
-            font-family: "SimSun", "宋体", "Microsoft YaHei", "微软雅黑", sans-serif;
-        }
-    </style>'''
-                        html_content = html_content.replace('<head>', '<head>' + font_css)
-                    # 确保有charset meta标签
-                    if 'charset' not in html_content.lower():
-                        html_content = html_content.replace('<head>', '<head><meta charset="UTF-8">')
-
-                with open(html_file, 'w', encoding='utf-8') as f:
-                    f.write(html_content)
-
-                # 转换为PDF，添加选项确保中文支持
-                pdf_file = temp_file + '.pdf'
-                print(f"正在使用pdfkit将HTML转换为PDF: {pdf_file}")
-
-                # 添加选项以支持中文并避免网络错误
-                options = {
-                    'encoding': 'UTF-8',
-                    'no-outline': None,
-                    'quiet': '',
-                    'disable-smart-shrinking': None,
-                    'dpi': 300,
-                    'image-dpi': 300,
-                    'image-quality': 94,
-                    'disable-external-links': None,
-                    'disable-javascript': None,
-                    'load-error-handling': 'ignore',
-                    'load-media-error-handling': 'ignore',
-                    'timeout': 10000
-                }
-
-                # 使用配置的pdfkit
-                pdfkit.from_file(html_file, pdf_file, configuration=wkhtmltopdf_config, options=options)
-
-                # 打印PDF文件
-                print(f"正在打印PDF文件: {pdf_file}")
-                subprocess.run(['lpr', '-P', self.printer_name, pdf_file], check=True)
-                return
-            except Exception as e:
-                print(f"pdfkit转换失败: {e}")
-                # 转换失败，继续使用备用方法
-
+        # 如果是HTML内容，且没有pdfkit，我们无法在客户端转换
+        # 但现在的架构是服务器转换好PDF发过来，所以content通常是PDF的URL
+        
         # 备用方法：直接处理文件
-        extension = '.html' if is_html else '.txt'
+        extension = '.txt'
         temp_file = temp_file + extension
         with open(temp_file, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -786,11 +521,36 @@ class PrintClient:
 async def main():
     print("=== 云打印客户端 ===")
     
-    # 检查wkhtmltopdf
-    check_wkhtmltopdf()
+    # 检查wkhtmltopdf (已废弃，无需检查)
+    # check_wkhtmltopdf()
     
-    # 注册开机自启
-    register_startup()
+    # 检查是否配置了自动开机自启
+    config_file = os.path.join(os.path.expanduser('~'), '.print_client_config.ini')
+    config = configparser.ConfigParser()
+    if os.path.exists(config_file):
+        config.read(config_file)
+        
+    if not config.has_section('print_client') or 'autostart' not in config['print_client']:
+        # 首次运行或未配置时询问
+        print("\n是否设置开机自启？(y/n) [默认为n]: ")
+        try:
+            # 使用带超时的input或者简单的input
+            # 这里在main里直接input是安全的
+            choice = input().strip().lower()
+            if choice == 'y':
+                register_startup(force=True)
+            else:
+                # 记录为不开启，避免下次再问
+                if not config.has_section('print_client'):
+                    config['print_client'] = {}
+                config['print_client']['autostart'] = 'false'
+                with open(config_file, 'w', encoding='utf-8') as f:
+                    config.write(f)
+        except Exception:
+            pass
+    elif config['print_client'].get('autostart') == 'true':
+        # 已配置且为true，确保注册
+        register_startup(force=False)
     
     client = PrintClient()
     

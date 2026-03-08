@@ -102,6 +102,20 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         after: function() {
             if (loading) loading.style.display = 'none';
+            // Expose generatePDF and renderPDF to global scope from the module exports
+            // Since we use ES modules for pdf-generator.js, we need to import them and attach to window
+            // But we can't do dynamic import here easily if not an async context or module script
+            
+            // We rely on the fact that pdf-generator.js is imported in index.html as a module
+            // and attaches itself to window.
+            
+            // Wait for modules to load
+            import('./ui/pdf-generator.js').then(module => {
+                window.generatePDF = module.generatePDF;
+                window.renderPDF = module.renderPDF;
+                console.log('PDF modules loaded');
+            }).catch(err => console.error('Failed to load PDF modules', err));
+            
             initUserInterface();
             initMobileFeatures();
             document.addEventListener('keydown', function(e) {

@@ -306,14 +306,19 @@
         document.body.appendChild(loadingModal);
 
         try {
-            // Generate PDF URL using the new server-side generation
-            // Note: We need to use preparePrintContent logic or ensure html is processed
-            // Since we already have html from convertSimpleMarkdown, we can use it directly
-            // BUT, convertSimpleMarkdown uses preparePrintContent internally, so it should be ready.
-            
-            // However, we need to ensure images/formulas are processed if not already
-            // convertSimpleMarkdown calls preparePrintContent which handles this.
-            
+            // Ensure generatePDF and renderPDF are available
+            if (!global.generatePDF) {
+                // If generatePDF is not on global, try to import it or assume it's loaded via script tag
+                // Since this is a module system (likely), we might need to rely on how pdf-generator.js exports it.
+                // In main.js or index.js, these should be attached to global/window.
+                
+                // Fallback: Check if we can get it from module imports if this file was a module
+                // But this file seems to be a classic script or IIFE.
+                
+                console.error('generatePDF not found on global object');
+                throw new Error('PDF生成模块未加载');
+            }
+
             var pdfUrl = await global.generatePDF(html, settings);
             
             loadingModal.remove();
