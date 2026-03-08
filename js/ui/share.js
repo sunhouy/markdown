@@ -23,6 +23,10 @@
             try { return JSON.parse(text); } catch (e) { return { code: 500, message: '响应解析失败' }; }
         } catch (e) {
             console.error('创建分享链接失败', e);
+            if (e.message === 'Failed to fetch' || e.message.includes('NetworkError')) {
+                global.showMessage('网络未连接，请连接网络', 'error');
+                return { code: 500, message: '网络未连接，请连接网络' };
+            }
             return { code: 500, message: '网络错误: ' + (e.message || '') };
         }
     }

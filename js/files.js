@@ -1226,6 +1226,9 @@
             throw new Error(result.message || '保存失败');
         } catch (error) {
             console.error('同步文件失败:', error);
+            if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+                global.showMessage('网络未连接，请连接网络', 'error');
+            }
             throw error;
         }
     }

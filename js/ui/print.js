@@ -483,6 +483,7 @@
 
                 ws.onerror = function() {
                     clearTimeout(timeout);
+                    global.showMessage('网络未连接，请连接网络', 'error');
                     resolve(false);
                     if (ws) ws.close();
                 };
@@ -651,10 +652,11 @@
                 };
 
                 ws.onerror = function(error) {
-                    clearTimeout(timeout);
-                    reject(error);
-                    ws.close();
-                };
+                clearTimeout(timeout);
+                global.showMessage('网络未连接，请连接网络', 'error');
+                reject(error);
+                ws.close();
+            };
 
                 ws.onclose = function() {
                     clearTimeout(timeout);
@@ -1507,6 +1509,7 @@
             ws.onerror = function(error) {
                 clearTimeout(timeout);
                 updateStatus('连接错误', '无法连接到打印服务器，请检查网络连接', true);
+                global.showMessage('网络未连接，请连接网络', 'error');
                 console.error('WebSocket错误:', error);
             };
 
@@ -2077,6 +2080,7 @@
 
                 ws.onerror = function(error) {
                     clearTimeout(timeout);
+                    global.showMessage('网络未连接，请连接网络', 'error');
                     reject(error);
                     ws.close();
                 };

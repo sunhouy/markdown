@@ -202,7 +202,11 @@
             var loadingModal = document.getElementById('aiLoadingModal');
             if (loadingModal) loadingModal.remove();
             
-            global.showMessage('AI排版失败: ' + error.message, 'error');
+            if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+                global.showMessage('网络未连接，请连接网络', 'error');
+            } else {
+                global.showMessage('AI排版失败: ' + error.message, 'error');
+            }
         }
     }
 
@@ -600,6 +604,7 @@
         };
         
         ws.onerror = function() {
+            global.showMessage('网络未连接，请连接网络', 'error');
             content.innerHTML = `
                 <div style="color:#dc3545;font-size:48px;margin-bottom:15px;"><i class="fas fa-exclamation-circle"></i></div>
                 <h3 style="margin:0;">连接错误</h3>
