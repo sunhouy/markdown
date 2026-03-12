@@ -283,6 +283,11 @@
 
     async function showAILayoutPreview(markdown, html) {
         var nightMode = g('nightMode') === true;
+        var previewModal = null;
+
+        var cleanup = function() {
+            if (previewModal) previewModal.remove();
+        };
         
         // Use default print settings for AI preview
         var settings = {
@@ -323,7 +328,7 @@
             
             loadingModal.remove();
 
-            var previewModal = document.createElement('div');
+            previewModal = document.createElement('div');
             previewModal.className = 'modal-overlay';
             previewModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:10003;display:flex;flex-direction:column;align-items:stretch;justify-content:stretch;padding:0;';
             
@@ -398,10 +403,6 @@
             previewContent.appendChild(buttonContainer);
             previewModal.appendChild(previewContent);
             document.body.appendChild(previewModal);
-
-            function cleanup() {
-                previewModal.remove();
-            }
             
             closeBtn.onclick = cleanup;
             previewModal.addEventListener('click', function(e) {

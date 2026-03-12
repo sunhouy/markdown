@@ -103,6 +103,9 @@ function g(name) { return global[name]; }
         // Default mode is 'print'
         mode = mode || 'print';
         
+        // Define cleanup function at top level to avoid ReferenceError
+        var cleanup = function() {};
+
         // 检查用户是否登录
         if (!g('currentUser')) {
             global.showMessage('请先登录后再使用此功能');
@@ -464,13 +467,13 @@ function g(name) { return global[name]; }
         statusCheckInterval = setInterval(checkClientStatus, 3000);
 
         // 关闭模态框时关闭WebSocket连接和清除定时器
-        function cleanup() {
+        cleanup = function() {
             closeWebSocket();
             if (statusCheckInterval) {
                 clearInterval(statusCheckInterval);
                 statusCheckInterval = null;
             }
-        }
+        };
 
         // 预览和发送按钮也需要关闭连接
         var previewBtn = modalContent.querySelector('#printPreviewBtn');
@@ -1300,6 +1303,12 @@ function g(name) { return global[name]; }
         var nightMode = g('nightMode') === true;
         var content = g('vditor') ? g('vditor').getValue() : '';
 
+        // Pre-define cleanup function to avoid scoping issues
+        var previewModal = null;
+        var cleanup = function() {
+            if (previewModal) previewModal.remove();
+        };
+
         // 显示加载状态
         var loadingModal = document.createElement('div');
         loadingModal.className = 'modal-overlay';
@@ -1314,7 +1323,7 @@ function g(name) { return global[name]; }
 
             loadingModal.remove();
 
-            var previewModal = document.createElement('div');
+            previewModal = document.createElement('div');
             previewModal.className = 'modal-overlay';
             previewModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:10001;display:flex;flex-direction:column;align-items:stretch;justify-content:stretch;padding:0;';
 
@@ -1371,10 +1380,6 @@ function g(name) { return global[name]; }
             previewContent.appendChild(buttonContainer);
             previewModal.appendChild(previewContent);
             document.body.appendChild(previewModal);
-
-            function cleanup() {
-                previewModal.remove();
-            }
             
             closeBtn.onclick = cleanup;
             cancelBtn.onclick = cleanup;
@@ -1920,13 +1925,13 @@ function g(name) { return global[name]; }
         statusCheckInterval = setInterval(checkClientStatus, 3000);
 
         // 关闭模态框时关闭WebSocket连接和清除定时器
-        function cleanup() {
+        var cleanup = function() {
             closeWebSocket();
             if (statusCheckInterval) {
                 clearInterval(statusCheckInterval);
                 statusCheckInterval = null;
             }
-        }
+        };
 
         // 关闭模态框时关闭WebSocket连接
         var cancelBtn = modalContent.querySelector('#filePrintCancelBtn');
