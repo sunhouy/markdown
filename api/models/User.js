@@ -10,7 +10,8 @@ class User {
             username: process.env.ADMIN_USER || 'admin',
             password: process.env.ADMIN_PASSWORD || '127127sun'
         };
-        this.baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.BASE_URL;
+        this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     }
 
     // Encrypt password
