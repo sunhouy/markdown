@@ -104,8 +104,37 @@ router.post('/upload', generalUpload.array('files[]'), async (req, res) => {
         return res.json({ success: false, message: '没有上传文件' });
     }
 
+    let urlPrefix = 'uploads';
+    const { username, password } = req.body;
+
+    // Check if user is authenticated
+    if (username && password) {
+        const auth = await userModel.login(username, password);
+        if (auth.code === 200) {
+            const targetDirName = path.join('user_files', username);
+            urlPrefix = `user_files/${username}`;
+            
+            // Create user directory if not exists
+            const fullTargetDir = path.join(__dirname, '../../', targetDirName);
+            if (!fs.existsSync(fullTargetDir)) {
+                fs.mkdirSync(fullTargetDir, { recursive: true });
+            }
+
+            // Move files
+            req.files.forEach(file => {
+                const oldPath = file.path;
+                const newPath = path.join(fullTargetDir, file.filename);
+                // Check if file exists in destination (edge case with same name)
+                // Since filename includes timestamp, collision is unlikely but possible
+                fs.renameSync(oldPath, newPath);
+                
+                // Update file path in memory if needed (though we just use filename for URL)
+            });
+        }
+    }
+
     const urls = req.files.map(file => {
-        return `${userModel.baseUrl}/uploads/${file.filename}`;
+        return `${userModel.baseUrl}/${urlPrefix}/${file.filename}`;
     });
 
     res.json({

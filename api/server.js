@@ -16,15 +16,18 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const uploadsPath = path.join(__dirname, '../uploads');
 const avatarsPath = path.join(__dirname, '../avatars');
 const screenshotsPath = path.join(__dirname, '../screenshots');
+const userFilesPath = path.join(__dirname, '../user_files');
 
 console.log('Serving static files from:');
 console.log('- Uploads:', uploadsPath);
 console.log('- Avatars:', avatarsPath);
 console.log('- Screenshots:', screenshotsPath);
+console.log('- User Files:', userFilesPath);
 
 app.use('/uploads', express.static(uploadsPath));
 app.use('/avatars', express.static(avatarsPath));
 app.use('/screenshots', express.static(screenshotsPath));
+app.use('/user_files', express.static(userFilesPath));
 
 // Serve static files from node_modules for Vditor
 app.use('/vditor', express.static(path.join(__dirname, '../node_modules/vditor/dist')));
@@ -102,11 +105,13 @@ const adminRoutes = require('./routes/admin');
 const apiRoutes = require('./routes/api');
 const convertRoutes = require('./routes/convert');
 const aiRoutes = require('./routes/ai');
+const userFilesRoutes = require('./routes/user_files');
 
 // Use routes
 app.use('/api', legacyRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/user_files', userFilesRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/external', apiRoutes);

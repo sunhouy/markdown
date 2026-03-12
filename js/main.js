@@ -181,6 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var mobileShareBtn = document.getElementById('mobileShareBtn');
         if (mobileShareBtn) mobileShareBtn.addEventListener('click', function() { window.showShareDialog(); closeDrop(); });
+        var mobileFileManagerBtn = document.getElementById('mobileFileManagerBtn');
+        if (mobileFileManagerBtn) mobileFileManagerBtn.addEventListener('click', function() { window.showFileManager(); closeDrop(); });
         var mobilePrintBtn = document.getElementById('mobilePrintBtn');
         if (mobilePrintBtn) mobilePrintBtn.addEventListener('click', function() { window.showPrintDialog(); closeDrop(); });
         
@@ -291,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var list = [
 
             { id: 'mobileShareBtn', fn: function() { window.showShareDialog(); closeDrop(); } },
+            { id: 'mobileFileManagerBtn', fn: function() { window.showFileManager(); closeDrop(); } },
             { id: 'mobilePrintBtn', fn: function() { window.showPrintDialog(); closeDrop(); } },
             { id: 'mobileMenuBtn', fn: function(e) { e.stopPropagation(); if (dropdown) dropdown.classList.toggle('show'); } },
             { id: 'mobileModeBtn', fn: function() { showModeSelection(); closeDrop(); } },

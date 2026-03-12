@@ -44,7 +44,16 @@
     async function uploadFiles(filesArray, autoInsert) {
         autoInsert = autoInsert !== false;
         var formData = new FormData();
-        for (var i = 0; i < filesArray.length; i++) formData.append('files[]', filesArray[i]);
+        for (var i = 0; i < filesArray.length; i++) {
+            formData.append('files[]', filesArray[i]);
+        }
+        
+        // Add user info if available
+        if (g('currentUser')) {
+            formData.append('username', g('currentUser').username);
+            formData.append('password', g('currentUser').password);
+        }
+        
         formData.append('uploadDir', 'uploads');
         try {
             global.showUploadStatus('正在上传文件...', 'info');
@@ -84,6 +93,12 @@
             // Create FormData - 使用 'files[]' 字段名以匹配 upload.php 的期望
             var formData = new FormData();
             formData.append('files[]', blob, 'image.png');
+            
+            // Add user info if available
+            if (g('currentUser')) {
+                formData.append('username', g('currentUser').username);
+                formData.append('password', g('currentUser').password);
+            }
 
             // Upload to server
             fetch('api/external/upload', {

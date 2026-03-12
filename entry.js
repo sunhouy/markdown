@@ -23,6 +23,7 @@ import './js/ui/upload.js';
 import './js/ui/share.js';
 import './js/ui/print.js';
 import './js/ui/ai.js';
+import './js/ui/file-manager.js';
 
 import './js/emoji-picker.js';
 import './js/formula-picker.js';
