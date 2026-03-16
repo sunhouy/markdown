@@ -5,6 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Markdown编辑器</title>
     <link rel="icon" type="image/x-icon" href="icon.png">
+    <!-- Cookies 提示样式 -->
+    <style>
+        .cookie-consent-banner {
+            position: fixed;
+            bottom: 70px; /* 位于底部工具栏上方 */
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #333;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10000;
+            font-size: 14px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .cookie-consent-banner span {
+            flex: 1;
+            margin-right: 12px;
+        }
+        .cookie-consent-banner button {
+            background: #0366d6;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(3,102,214,0.3);
+            transition: background 0.2s;
+        }
+        .cookie-consent-banner button:hover {
+            background: #0353b0;
+        }
+        /* 跟随系统暗色模式 */
+        @media (prefers-color-scheme: dark) {
+            .cookie-consent-banner {
+                background: rgba(30, 30, 30, 0.95);
+                color: #f0f0f0;
+                border-color: rgba(255,255,255,0.1);
+            }
+            .cookie-consent-banner button {
+                background: #0a6cf5;
+            }
+        }
+        /* 小屏幕适配 */
+        @media (max-width: 480px) {
+            .cookie-consent-banner {
+                bottom: 65px;
+                left: 8px;
+                right: 8px;
+                padding: 10px 12px;
+            }
+            .cookie-consent-banner span {
+                font-size: 13px;
+            }
+            .cookie-consent-banner button {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -188,6 +257,7 @@
             <hr>
             <p><strong>致谢</strong></p>
             <p>vditor, fortawesome, bcryptjs, cors, dotenv, express, html-to-image, markdown-it, multer, mysql2, uuid</p>
+            <p><a href="https://beian.miit.gov.cn/" target="_blank">京ICP备2025154249号</a></p>
         </div>
         <div class="modal-actions">
             <button class="modal-btn secondary" id="closeAboutBtn">关闭</button>
@@ -244,7 +314,6 @@
     <i class="fas fa-moon"></i>
 </button>
 
-
 <!-- 操作面板容器 -->
 <div class="mobile-action-sheet" id="mobileActionSheet"></div>
 <div class="mobile-action-sheet-overlay" id="mobileActionSheetOverlay"></div>
@@ -255,6 +324,11 @@
     <button class="dropdown-item" id="logoutItem"><i class="fas fa-sign-out-alt"></i> 退出登录</button>
 </div>
 
+<!-- Cookies 同意提示横幅 -->
+<div id="cookieConsentBanner" class="cookie-consent-banner" style="display: none;">
+    <span>🍪 本网站使用 Cookies 以提升您的体验。继续使用即表示您同意我们的隐私政策。</span>
+    <button id="acceptCookiesBtn">接受</button>
+</div>
 
 <script type="module" src="/entry.js"></script>
 
@@ -264,7 +338,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const shareId = urlParams.get('share_id');
         const sharePassword = urlParams.get('share_password');
-        
+
         if (shareId) {
             // 等待 Vditor 初始化完成后再处理分享链接
             function waitForVditor() {
@@ -279,7 +353,7 @@
             waitForVditor();
         }
     });
-    
+
     async function handleShareLink(shareId, password) {
         try {
             // 从API获取分享的文档内容
@@ -293,17 +367,17 @@
                     password: password
                 })
             });
-            
+
             const result = await response.json();
-            
+
             if (result.code === 200) {
                 const shareData = result.data;
-                
+
                 // 填充编辑器内容
                 if (window.vditor) {
                     window.vditor.setValue(shareData.content);
                 }
-                
+
                 // 根据分享模式调整UI
                 if (shareData.mode === 'view') {
                     // 仅查看模式：隐藏工具栏和编辑相关元素
@@ -316,13 +390,13 @@
                         showToast('分享链接已过期，无法编辑', 'error');
                     }
                 }
-                
+
                 // 隐藏登录提示
                 if (window.showLoginModal) {
                     // 清除自动显示登录模态框的定时器
                     window.clearTimeout(window.loginModalTimer);
                 }
-                
+
                 // 显示分享信息
                 showShareInfo(shareData);
             } else {
@@ -337,44 +411,44 @@
             showToast('网络错误，请重试', 'error');
         }
     }
-    
+
     function hideEditElements() {
         // 隐藏顶部工具栏
         const mobileToolbar = document.querySelector('.mobile-toolbar-container');
         if (mobileToolbar) {
             mobileToolbar.style.display = 'none';
         }
-        
+
         // 隐藏底部操作栏
         const mobileBottomBar = document.querySelector('.mobile-bottom-bar');
         if (mobileBottomBar) {
             mobileBottomBar.style.display = 'none';
         }
-        
+
         // 隐藏文件列表按钮
         const mobileFileBtn = document.getElementById('mobileFileBtn');
         if (mobileFileBtn) {
             mobileFileBtn.style.display = 'none';
         }
-        
+
         // 隐藏登录按钮
         const mobileLoginBtn = document.getElementById('mobileLoginBtn');
         if (mobileLoginBtn) {
             mobileLoginBtn.style.display = 'none';
         }
-        
+
         // 隐藏菜单按钮
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         if (mobileMenuBtn) {
             mobileMenuBtn.style.display = 'none';
         }
-        
+
         // 隐藏夜间模式切换按钮
         const modeToggle = document.getElementById('modeToggle');
         if (modeToggle) {
             modeToggle.style.display = 'none';
         }
-        
+
         // 调整编辑器容器高度
         const editorContainer = document.querySelector('.editor-container');
         if (editorContainer) {
@@ -382,7 +456,7 @@
             editorContainer.style.height = '100vh';
         }
     }
-    
+
     function showShareInfo(shareData) {
         // 显示分享信息提示
         let infoMessage = `分享文档: ${shareData.filename}`;
@@ -395,10 +469,10 @@
             }
         }
         infoMessage += ` (模式: ${shareData.mode === 'view' ? '仅查看' : '可编辑'})`;
-        
+
         showToast(infoMessage, 'info');
     }
-    
+
     function showToast(message, type = 'info') {
         // 创建提示元素
         let toast = document.getElementById('toast');
@@ -408,7 +482,7 @@
             toast.className = 'toast';
             document.body.appendChild(toast);
         }
-        
+
         // 设置样式
         toast.style.position = 'fixed';
         toast.style.bottom = '24px';
@@ -423,25 +497,58 @@
         toast.style.opacity = '0';
         toast.style.transition = 'all 0.3s';
         toast.style.zIndex = '10000';
-        
+
         if (type === 'success') {
             toast.style.background = '#2da44e';
         } else if (type === 'error') {
             toast.style.background = '#cf222e';
         }
-        
+
         // 显示消息
         toast.textContent = message;
         toast.classList.add('show');
         toast.style.transform = 'translateY(0)';
         toast.style.opacity = '1';
-        
+
         // 3秒后隐藏
         setTimeout(() => {
             toast.style.transform = 'translateY(100px)';
             toast.style.opacity = '0';
         }, 3000);
     }
+</script>
+
+<!-- Cookies 提示脚本 -->
+<script>
+    (function() {
+        function initCookieConsent() {
+            const banner = document.getElementById('cookieConsentBanner');
+            if (!banner) return;
+
+            // 检查是否已经同意过
+            const hasConsent = localStorage.getItem('cookieConsent');
+            if (hasConsent === 'true') {
+                banner.style.display = 'none';
+            } else {
+                banner.style.display = 'flex'; // 显示横幅
+            }
+
+            const acceptBtn = document.getElementById('acceptCookiesBtn');
+            if (acceptBtn) {
+                acceptBtn.addEventListener('click', function() {
+                    localStorage.setItem('cookieConsent', 'true');
+                    banner.style.display = 'none';
+                });
+            }
+        }
+
+        // 等待 DOM 加载完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initCookieConsent);
+        } else {
+            initCookieConsent();
+        }
+    })();
 </script>
 
 </body>

@@ -88,7 +88,6 @@ router.post('/pdf', (req, res) => {
             encoding: 'UTF-8'
         };
 
-        console.log('Generating PDF to:', filePath);
         
         const writeStream = fs.createWriteStream(filePath);
         

@@ -13,21 +13,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
  * @returns {Promise<string>} - Returns PDF URL
  */
 export async function generatePDF(htmlContent, settings, filename) {
-    console.log('[PDF Debug] generatePDF start');
     
     // Debug: Check if content is empty
     if (!htmlContent || htmlContent.trim() === '') {
         console.warn('[PDF Debug] generatePDF received empty content');
         htmlContent = '<div style="padding: 20px; font-size: 16px; color: #666; text-align: center;">(文档内容为空)</div>';
-    } else {
-        console.log('[PDF Debug] Content length:', htmlContent.length);
-    }
-
-    // Add print styles to the HTML content
-    // We need to inject the styles directly into the HTML because wkhtmltopdf won't see the external CSS
-    // or the styles added by print.js if they are not part of the html string.
-    // print.js already adds <style> tag to htmlContent, so we might be good.
-    // But we should ensure the HTML is a full document structure for best results.
+    } 
     
     const fullHtml = `
         <!DOCTYPE html>
@@ -55,7 +46,6 @@ export async function generatePDF(htmlContent, settings, filename) {
     `;
 
     try {
-        console.log('[PDF Debug] Sending request to server...');
         const response = await fetch('api/convert/pdf', {
             method: 'POST',
             headers: {
@@ -70,7 +60,6 @@ export async function generatePDF(htmlContent, settings, filename) {
         const result = await response.json();
         
         if (result.code === 200 && result.url) {
-            console.log('[PDF Debug] PDF generated successfully:', result.url);
             return result.url;
         } else {
             throw new Error(result.message || 'PDF generation failed');

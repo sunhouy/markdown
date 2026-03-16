@@ -9,6 +9,7 @@ node_modules/
 dist/
 build/
 uploads/
+user_files/
 
 js/ui.js.bak
 *.tmp

@@ -161,10 +161,10 @@
             
             // 2. 准备提示词
             var stylePrompts = {
-                academic: '请将以下Markdown内容重新排版为学术论文风格。不得对内容文本进行任何修改。',
-                business: '请将以下Markdown内容重新排版为商务公文风格。不得对内容文本进行任何修改',
-                creative: '请将以下Markdown内容重新排版为创意设计风格。不得对内容文本进行任何修改。',
-                simple: '请将以下Markdown内容重新排版为极简阅读风格。不得对内容文本进行任何修改。'
+                academic: '请将以下Markdown内容重新排版为学术论文风格。不得对内容文本进行任何修改，无论内容多么随意。',
+                business: '请将以下Markdown内容重新排版为商务公文风格。不得对内容文本进行任何修改，无论内容多么随意。',
+                creative: '请将以下Markdown内容重新排版为创意设计风格。不得对内容文本进行任何修改，无论内容多么随意。',
+                simple: '请将以下Markdown内容重新排版为极简阅读风格。不得对内容文本进行任何修改，无论内容多么随意。'
             };
             
             var prompt = stylePrompts[currentAISettings.style] || stylePrompts.academic;
@@ -214,7 +214,7 @@
                 messages: [
                     {
                         role: "system",
-                        content: systemPrompt + "\n请直接返回排版后的Markdown内容，不要包含任何解释、前言或后语。不要使用代码块包裹。"
+                        content: systemPrompt + "\n请直接返回排版后的Markdown内容，不得对内容文本进行任何修改，无论内容多么随意。不要包含任何解释、前言或后语。不要使用代码块包裹。"
                     },
                     {
                         role: "user",
@@ -313,12 +313,6 @@
         try {
             // Ensure generatePDF and renderPDF are available
             if (!global.generatePDF) {
-                // If generatePDF is not on global, try to import it or assume it's loaded via script tag
-                // Since this is a module system (likely), we might need to rely on how pdf-generator.js exports it.
-                // In main.js or index.js, these should be attached to global/window.
-                
-                // Fallback: Check if we can get it from module imports if this file was a module
-                // But this file seems to be a classic script or IIFE.
                 
                 console.error('generatePDF not found on global object');
                 throw new Error('PDF生成模块未加载');
@@ -435,128 +429,6 @@
                 }
             });
         }, 100);
-    }
-
-    function printAILayout(htmlContent) {
-        // 这里我们需要绕过常规的 formatForPrint，直接发送 HTML 到打印服务
-        // 或者创建一个临时的打印预览
-        
-        // 我们可以复用 sendToPrint，但需要一种方式传递已生成的 HTML
-        // 这里我们创建一个专门的打印函数
-        
-        if (!g('currentUser')) {
-            global.showMessage('请先登录');
-            return;
-        }
-        
-        var username = g('currentUser').username;
-        var userPassword = g('currentUser').password;
-        var nightMode = g('nightMode') === true;
-        
-        // 显示发送状态
-        var modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10004;display:flex;align-items:center;justify-content:center;';
-        
-        var content = document.createElement('div');
-        content.style.cssText = 'background:' + (nightMode ? '#2d2d2d' : 'white') + ';color:' + (nightMode ? '#eee' : '#333') + ';border-radius:12px;padding:30px;width:90%;max-width:400px;text-align:center;';
-        
-        content.innerHTML = `
-            <h3 style="margin-top:0;">正在发送到打印机</h3>
-            <p>AI排版文档正在处理中...</p>
-            <div style="margin:20px 0;height:4px;background:#eee;border-radius:2px;overflow:hidden;">
-                <div style="height:100%;background:#667eea;width:50%;animation:progress 2s infinite ease-in-out;"></div>
-            </div>
-            <style>@keyframes progress { 0% { width: 0%; transform: translateX(-100%); } 100% { width: 100%; transform: translateX(100%); } }</style>
-        `;
-        
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        
-        // 发送 WebSocket 请求
-        var wsUrl = 'wss://print.yhsun.cn';
-        var ws = new WebSocket(wsUrl);
-        
-        ws.onopen = function() {
-            var fullHtml = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>AI排版文档</title>
-    <style>
-        body { font-family: "SimSun", "宋体", serif; padding: 15mm; }
-        /* 包含基本的打印样式 */
-        img { max-width: 100%; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-    </style>
-</head>
-<body>
-    ${htmlContent}
-</body>
-</html>`;
-
-            var printData = {
-                type: 'print_request',
-                username: username,
-                password: userPassword,
-                content: fullHtml,
-                settings: { ai_layout: true, style: currentAISettings.style },
-                timestamp: new Date().toISOString(),
-                content_type: 'html'
-            };
-            
-            ws.send(JSON.stringify(printData));
-        };
-        
-        ws.onmessage = function(event) {
-            try {
-                var response = JSON.parse(event.data);
-                if (response.type === 'print_queued') {
-                    content.innerHTML = `
-                        <div style="color:#28a745;font-size:48px;margin-bottom:15px;"><i class="fas fa-check-circle"></i></div>
-                        <h3 style="margin:0;">发送成功</h3>
-                        <p>文档已发送到打印客户端</p>
-                        <button id="closePrintStatusBtn" style="margin-top:20px;padding:8px 20px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;">确定</button>
-                    `;
-                    document.getElementById('closePrintStatusBtn').onclick = function() {
-                        modal.remove();
-                    };
-                } else if (response.type === 'error') {
-                    throw new Error(response.message);
-                }
-            } catch (e) {
-                content.innerHTML = `
-                    <div style="color:#dc3545;font-size:48px;margin-bottom:15px;"><i class="fas fa-times-circle"></i></div>
-                    <h3 style="margin:0;">发送失败</h3>
-                    <p>${e.message || '未知错误'}</p>
-                    <button id="closePrintStatusBtn" style="margin-top:20px;padding:8px 20px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;">关闭</button>
-                `;
-                document.getElementById('closePrintStatusBtn').onclick = function() {
-                    modal.remove();
-                };
-            }
-            ws.close();
-        };
-        
-        ws.onerror = function() {
-            global.showMessage('网络未连接，请连接网络', 'error');
-            content.innerHTML = `
-                <div style="color:#dc3545;font-size:48px;margin-bottom:15px;"><i class="fas fa-exclamation-circle"></i></div>
-                <h3 style="margin:0;">连接错误</h3>
-                <p>无法连接到打印服务器</p>
-                <button id="closePrintStatusBtn" style="margin-top:20px;padding:8px 20px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;">关闭</button>
-            `;
-            document.getElementById('closePrintStatusBtn').onclick = function() {
-                modal.remove();
-            };
-        };
-    }
-
-    // 辅助函数：生成参考图HTML (用于AI分析)
-    function generateReferenceHtml(content) {
-        // ... 实现略 ...
-        return content;
     }
 
     global.showAILayoutDialog = showAILayoutDialog;
