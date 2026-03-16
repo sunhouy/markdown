@@ -63,6 +63,7 @@
     "npmRebuild": false,
     "files": [
       "dist/**/*",
+      "electron-main.js",
       "package.json"
     ],
     "linux": {
