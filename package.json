@@ -10,8 +10,8 @@
     "test": "jest",
     "check-deploy": "node scripts/check-deploy.js",
     "start": "node api/server.js",
-    "build:electron:win": "electron-builder -w --x64",
-    "build:electron:linux": "electron-builder -l AppImage deb --x64"
+    "build:electron:win": "electron-builder -w --x64 --publish=never",
+    "build:electron:linux": "electron-builder -l AppImage deb --x64 --publish=never"
   },
   "repository": {
     "type": "git",
@@ -64,7 +64,6 @@
       "output": "dist-electron"
     },
     "npmRebuild": false,
-    "publish": "never",
     "files": [
       "dist/**/*",
       "electron-main.js",
