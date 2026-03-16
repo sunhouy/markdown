@@ -80,7 +80,12 @@
         }
     }
 
-    function uploadImage(dataUrl) {
+    /**
+     * 上传 base64 图片。
+     * 当 useTempDir 为 true 时，不附带用户信息，服务端会将文件保存在公共 uploads 目录，
+     * 用于临时文件（例如 PDF 导出 / 云打印中生成的 mermaid 图片）。
+     */
+    function uploadImage(dataUrl, useTempDir) {
         return new Promise(function(resolve, reject) {
             // Convert data URL to Blob
             var arr = dataUrl.split(','), mime = arr[0].match(/:(.*?);/)[1],
@@ -90,12 +95,14 @@
             }
             var blob = new Blob([u8arr], {type: mime});
 
-            // Create FormData - 使用 'files[]' 字段名以匹配 upload.php 的期望
+            // Create FormData - 使用 'files[]' 字段名以匹配服务端期望
             var formData = new FormData();
             formData.append('files[]', blob, 'image.png');
             
-            // Add user info if available
-            if (g('currentUser')) {
+            // 打印 / 导出 PDF 时，要求图表上传到临时目录（/uploads），
+            // 此时不携带用户信息，避免被移动到用户专属目录。
+            // 其它场景仍然附带用户信息，走原有 user_files 目录逻辑。
+            if (!useTempDir && g('currentUser')) {
                 formData.append('username', g('currentUser').username);
                 formData.append('password', g('currentUser').password);
             }

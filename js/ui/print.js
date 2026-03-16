@@ -1687,7 +1687,9 @@ function g(name) { return global[name]; }
         }
         
         console.log('[Print Debug] Starting convertFormulasAndChartsToImages...');
-        var processedHtml = await global.convertFormulasAndChartsToImages(htmlContent);
+        // 在打印 / 导出 PDF 场景下，mermaid 图表应上传到临时目录（PDF 所在的 uploads 目录），
+        // 而不是用户自己的 user_files 目录，因此传入 useTempDir 标志。
+        var processedHtml = await global.convertFormulasAndChartsToImages(htmlContent, { useTempDir: true });
         console.log('[Print Debug] convertFormulasAndChartsToImages done. HTML length:', processedHtml.length);
 
         // For print, we need to ensure formulas, charts, and images are properly rendered

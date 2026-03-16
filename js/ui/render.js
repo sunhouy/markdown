@@ -33,7 +33,11 @@
         }
     }
 
-    async function convertFormulasAndChartsToImages(html) {
+    /**
+     * 将公式和图表转换为图片。
+     * options.useTempDir 为 true 时，会提示 uploadImage 使用临时目录（不携带用户信息）。
+     */
+    async function convertFormulasAndChartsToImages(html, options) {
         console.log('[Render Debug] convertFormulasAndChartsToImages start');
         if (!html) {
             console.log('[Render Debug] HTML is empty, skipping');
@@ -251,7 +255,8 @@
                 }
 
                 // Upload image to server
-                var imgUrl = await global.uploadImage(dataUrl);
+                // 当 options.useTempDir 为 true 时，上传到临时目录（如 PDF 导出目录），而不是用户目录
+                var imgUrl = await global.uploadImage(dataUrl, options && options.useTempDir);
                 console.log('[Render Debug] Chart uploaded:', imgUrl);
 
                 if (imgUrl && el.parentNode) {

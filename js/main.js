@@ -348,6 +348,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // 页面关闭/切后台时，使用 sendBeacon 尽最大努力保存当前文件到服务器
+    function tryBeaconSaveOnLeave() {
+        try {
+            if (window.currentUser && typeof window.syncCurrentFileWithBeacon === 'function') {
+                window.syncCurrentFileWithBeacon();
+            }
+        } catch (e) {}
+    }
+
+    // pagehide 比 beforeunload 更适合移动端/浏览器回收页面
+    window.addEventListener('pagehide', tryBeaconSaveOnLeave);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') tryBeaconSaveOnLeave();
+    });
+
     // 渲染底部工具栏
     window.renderBottomToolbar = function() {
         var toolbarContainer = document.getElementById('bottomBarButtons');

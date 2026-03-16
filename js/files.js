@@ -166,6 +166,11 @@
                 const localFiles = JSON.parse(localStorage.getItem('vditor_files') || '[]');
                 // 迁移：给本地文件增加type字段，默认为file
                 localFiles.forEach(f => { if (!f.type) f.type = 'file'; });
+
+                // 当用户从未登录 -> 登录时，本地可能存在服务器从未见过的文件。
+                // 这些文件不应弹冲突窗口，应直接上传并保存到用户服务器上。
+                await uploadLocalOnlyFilesToServerIfNeeded(localFiles, serverFiles);
+
                 const conflicts = detectConflicts(localFiles, serverFiles);
                 if (conflicts.length > 0) {
                     showConflictResolution(conflicts, serverFiles);
@@ -206,15 +211,128 @@
                     });
                 }
             } else {
-                conflicts.push({
-                    type: 'delete',
-                    filename: localFile.name,
-                    localContent: localFile.content,
-                    localModified: localFile.lastModified
-                });
+                // 只有当本地文件曾经同步过（isSynced=true），而服务器现在没有时，才视为“服务器删除”冲突。
+                // 本地新建但从未同步过的文件（isSynced=false）会在 loadFilesFromServer 中自动上传，不弹窗。
+                if (localFile.isSynced) {
+                    conflicts.push({
+                        type: 'delete',
+                        filename: localFile.name,
+                        localContent: localFile.content,
+                        localModified: localFile.lastModified
+                    });
+                }
             }
         });
         return conflicts;
+    }
+
+    async function uploadLocalOnlyFilesToServerIfNeeded(localFiles, serverFiles) {
+        if (!g('currentUser')) return;
+
+        const serverFileMap = {};
+        serverFiles.forEach(function(f) { serverFileMap[f.name] = f; });
+
+        const toUpload = localFiles.filter(function(f) {
+            if (!f || !f.name) return false;
+            if (f.type !== 'file' && f.type !== 'folder') return false;
+            if (serverFileMap[f.name]) return false;
+            // 只上传“从未同步过”的本地文件/文件夹
+            return !f.isSynced;
+        });
+
+        if (toUpload.length === 0) return;
+
+        try {
+            global.showSyncStatus('检测到本地新文件，正在自动上传 ' + toUpload.length + ' 个...');
+        } catch (e) {}
+
+        // 逐个上传，确保顺序和稳定性
+        for (let i = 0; i < toUpload.length; i++) {
+            const f = toUpload[i];
+            try {
+                // 如果当前文件正在编辑，用编辑器内容为准
+                const content =
+                    f.type === 'folder'
+                        ? ''
+                        : (g('vditor') && f.id === g('currentFileId') ? g('vditor').getValue() : f.content);
+
+                // 使用现有的保存接口（verifyUser 支持 body.token），避免依赖自定义 Header（sendBeacon 也可用）
+                const filenameToSend = f.type === 'folder' ? (f.name.endsWith('/') ? f.name : (f.name + '/')) : f.name;
+                const body = {
+                    username: g('currentUser').username,
+                    token: g('currentUser').token || g('currentUser').username,
+                    filename: filenameToSend,
+                    content: f.type === 'folder' ? '{"meta":"folder"}' : content
+                };
+
+                const api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+                const resp = await fetch(api + '/files/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const r = global.parseJsonResponse ? await global.parseJsonResponse(resp) : await resp.json();
+                if (r.code === 200) {
+                    // 标记本地为已同步，并把它加入 serverFiles，避免后续被当成缺失
+                    f.isSynced = true;
+                    f.lastModified = Date.now();
+                    serverFiles.push({
+                        name: f.name,
+                        type: f.type,
+                        content: f.type === 'folder' ? '{"meta":"folder"}' : content,
+                        lastModified: f.lastModified
+                    });
+                } else {
+                    console.warn('自动上传失败:', f.name, r.message);
+                }
+            } catch (e) {
+                console.warn('自动上传异常:', f.name, e);
+            }
+        }
+
+        // 写回 localStorage，确保后续不会重复上传
+        try {
+            localStorage.setItem('vditor_files', JSON.stringify(localFiles));
+        } catch (e) {}
+    }
+
+    function syncCurrentFileWithBeacon() {
+        if (!g('currentUser')) return false;
+        const currentFileId = g('currentFileId');
+        const vditor = g('vditor');
+        if (!currentFileId || !vditor) return false;
+        const files = g('files') || [];
+        const file = files.find(f => f.id === currentFileId);
+        if (!file || file.type !== 'file') return false;
+
+        const content = vditor.getValue();
+        const body = {
+            username: g('currentUser').username,
+            token: g('currentUser').token || g('currentUser').username,
+            filename: file.name,
+            content: content
+        };
+
+        try {
+            const payload = new Blob([JSON.stringify(body)], { type: 'application/json' });
+            const api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            if (navigator.sendBeacon) {
+                const ok = navigator.sendBeacon(api + '/files/save', payload);
+                if (ok) return true;
+            }
+        } catch (e) {}
+
+        // 兜底：keepalive fetch（如果浏览器支持）
+        try {
+            const api = global.getApiBaseUrl ? global.getApiBaseUrl() : 'api';
+            fetch(api + '/files/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                keepalive: true
+            });
+        } catch (e) {}
+        return true;
     }
 
     function showConflictResolution(conflicts, serverFiles) {
@@ -1551,6 +1669,7 @@
     global.syncAllFiles = syncAllFiles;
     global.syncFileToServer = syncFileToServer;
     global.deleteFileFromServer = deleteFileFromServer;
+    global.syncCurrentFileWithBeacon = syncCurrentFileWithBeacon;
     global.previewHistoryVersion = previewHistoryVersion;
     global.restoreFromHistory = restoreFromHistory;
     global.deleteHistoryVersion = deleteHistoryVersion;
