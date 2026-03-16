@@ -15,11 +15,17 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '24'
+        # 建议使用 LTS，避免生态包对最新版本兼容问题
+        node-version: '20'
         cache: 'npm'
 
+    - name: Clean workspace (node_modules)
+      run: |
+        rm -rf node_modules
+        rm -rf **/node_modules || true
+
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     # - name: Run tests
       # run: npm test
@@ -59,7 +65,10 @@ jobs:
         password: ${{ secrets.SERVER_PASSWORD }}
         script: |
           cd /www/wwwroot/js
-          npm install --production
+          # 确保不会因为历史残留导致安装异常
+          rm -rf node_modules
+          # npm v7+ 推荐用 --omit=dev 替代 --production
+          npm ci --omit=dev
           
           # PM2 启动/重启服务
           if pm2 describe md-server > /dev/null; then
