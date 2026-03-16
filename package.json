@@ -64,6 +64,7 @@
       "output": "dist-electron"
     },
     "npmRebuild": false,
+    "publish": "never",
     "files": [
       "dist/**/*",
       "electron-main.js",
