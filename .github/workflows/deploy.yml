@@ -83,6 +83,66 @@ jobs:
             service nginx reload
           fi
 
+  # 打包 H5Pack 移动应用资源（供下载）
+  build-h5pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app for mobile H5Pack
+        run: npm run build
+
+      - name: Archive dist as H5Pack bundle
+        run: |
+          mkdir -p artifacts
+          cd dist
+          zip -r ../artifacts/md-h5pack-web.zip .
+
+      - name: Upload H5Pack bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: md-h5pack-web
+          path: artifacts/md-h5pack-web.zip
+
+  # 打包 Electron 桌面应用（需在 package.json 中提供对应打包脚本）
+  build-electron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 假设你在 package.json 中添加了 "build:electron" 脚本（例如使用 electron-builder）
+      - name: Build Electron app
+        run: npm run build:electron
+
+      - name: Upload Electron artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: md-electron-desktop
+          path: |
+            dist-electron/**
+            release/**
+          if-no-files-found: warn
+
   check-print-changes:
     runs-on: ubuntu-latest
     outputs:
