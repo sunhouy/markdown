@@ -18,7 +18,10 @@
     "url": "git+https://github.com/sunhouy/markdown.git"
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "sunhouyun",
+    "email": "no-reply@md.yhsun.cn"
+  },
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/sunhouy/markdown/issues"
