@@ -1238,14 +1238,6 @@ import { installSyncRuntime } from './sync-runtime';
             window.$.jstree.reference('#fileList').destroy();
         }
 
-        let lastToggleTime = 0;
-        function safeToggleNode(inst, node) {
-            const now = Date.now();
-            if (now - lastToggleTime < 300) return; // 300ms 内防止重复触发
-            lastToggleTime = now;
-            inst.toggle_node(node);
-        }
-
         const tree = window.$('#fileList').jstree({
             'core': {
                 'check_callback': true, // 允许所有操作
@@ -1416,33 +1408,21 @@ import { installSyncRuntime } from './sync-runtime';
                     openFile(data.node.id);
                 }
             } else if (data.node.type === 'folder') {
-                safeToggleNode(data.instance, data.node);
-                // 点击文件夹后，保持当前打开文件的选中状态
+                data.instance.toggle_node(data.node);
+                // 点击文件夹后，保持当前打开文件的选中状态。
+                // 这里不触发展开（prevent_open），避免点击收起父级时又把刚收起的文件夹打开。
+                data.instance.deselect_node(data.node);
                 const currentFileId = g('currentFileId');
-                if (currentFileId && data.instance.get_node(currentFileId)) {
-                    data.instance.deselect_node(data.node);
-                    data.instance.select_node(currentFileId);
+                const current = currentFileId ? data.instance.get_node(currentFileId) : null;
+                if (current) {
+                    data.instance.select_node(current, true, true);
                 }
             }
         })
         .on('click.jstree', function (e) {
-            const inst = window.$.jstree.reference(e.target);
-            const node = inst.get_node(e.target);
             if (isFileListMultiSelectMode()) {
                 // 多选模式下，点击复选框已单独处理；点击节点其他位置不进行展开/打开
                 return;
-            }
-            if (node && node.type === 'folder') {
-                const target = window.$(e.target);
-                // 排除右侧菜单按钮和箭头（箭头 jstree 会默认处理，且不需要我们在这里 toggle）
-                if ((target.hasClass('jstree-anchor') || target.closest('.jstree-anchor').length) && 
-                    !target.hasClass('file-menu-btn') && 
-                    !target.hasClass('jstree-ocl')) {
-                    // 如果节点已经是选中状态，select_node 不会再次触发，所以我们需要在这里手动 toggle
-                    if (inst.is_selected(node)) {
-                        safeToggleNode(inst, node);
-                    }
-                }
             }
         })
         .on('rename_node.jstree', function (e, data) {
